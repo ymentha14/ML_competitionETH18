@@ -1,0 +1,14 @@
+Task 4 Machine learning:
+
+old_code: code from the previous task to get inspired from
+
+input_data: data we take from the available zip file that we have to treat
+
+results: results from the different runs
+
+input_params: directory where we store the json dictionaries for the main program
+
+logs: log directory for tensorboard
+
+archives: archive directory for tensorboard
+

@@ -1,12 +1,12 @@
 .PHONY: all clean clear
 # runs the file with the arguments present in the code
-run: task3.py
-	@python3 task3.py
+run: main.py
+	@python3 main.py
 
 # starts the run for all json present in the input file
 all_run: 
-	@ls $$PWD/input/* | xargs -I {} json validate --schema-file={}
-	@ ls $$PWD/input/* | xargs -I {} python3 task3.py {}
+	@ls $$PWD/input_params/* | xargs -I {} json validate --schema-file={}
+	@ ls $$PWD/input_params/* | xargs -I {} python3 main.py {}
 	@mpg123 sound/wmelon.mp3
 
 #copy everything in the logs file into the archive file

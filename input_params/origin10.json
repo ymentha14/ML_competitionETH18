@@ -1,6 +1,9 @@
 {
+ "paramsout":["Ratio","pca"],
  "Ratio": 0.99,
  "pca": 50,
+ "ss_model":"LabSpr",
+ "ss_kernel":"knn",
  "loss": "sparse_categorical_crossentropy",
  "optimizer": "SGD",
  "learning rate": 0.0008,
@@ -8,44 +11,13 @@
  "decay":1e-5,
  "momentum":0.9,
  "batch_size": 16,
- "number of epochs": 100,
- "ss_model":"LabSpr",
- "ss_kernel":"knn",
+ "number of epochs":1,
+ "gamma":20,
+ "neighbor":7,
+ "alpha":0.2,
  "layers": [
   [
    "relu",
    1024
-  ],
-  [
-   "dropout",
-   0.33
-  ],
-  [
-   "relu",
-   1024
-  ],
-  [
-   "dropout",
-   0.33
-  ],
-  [
-   "relu",
-   1024
-  ],
-  [
-   "dropout",
-   0.33
-  ],
-  [
-   "relu",
-   1024  
-  ],
-  [
-   "dropout",
-   0.33
-  ],
-  [
-   "relu",
-   1024  
   ]
- ]}
+]}

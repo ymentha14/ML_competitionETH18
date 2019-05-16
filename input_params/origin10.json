@@ -1,0 +1,51 @@
+{
+ "Ratio": 0.99,
+ "pca": 50,
+ "loss": "sparse_categorical_crossentropy",
+ "optimizer": "SGD",
+ "learning rate": 0.0008,
+ "metrics": "accuracy",
+ "decay":1e-5,
+ "momentum":0.9,
+ "batch_size": 16,
+ "number of epochs": 100,
+ "ss_model":"LabSpr",
+ "ss_kernel":"knn",
+ "layers": [
+  [
+   "relu",
+   1024
+  ],
+  [
+   "dropout",
+   0.33
+  ],
+  [
+   "relu",
+   1024
+  ],
+  [
+   "dropout",
+   0.33
+  ],
+  [
+   "relu",
+   1024
+  ],
+  [
+   "dropout",
+   0.33
+  ],
+  [
+   "relu",
+   1024  
+  ],
+  [
+   "dropout",
+   0.33
+  ],
+  [
+   "relu",
+   1024  
+  ]
+ ]}

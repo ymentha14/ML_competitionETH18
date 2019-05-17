@@ -1,0 +1,27 @@
+{
+ "Ratio": 0.7,
+ "ss_model": "LabSpr",
+ "ss_kernel": "knn",
+ "loss": "sparse_categorical_crossentropy",
+ "optimizer": "SGD",
+ "learning rate": 0.001,
+ "metrics": "accuracy",
+ "decay": 0,
+ "momentum": 0,
+ "batch_size": 32,
+ "number of epochs": 5,
+ "gamma": 20,
+ "neighbor": 7,
+ "alpha": 0.2,
+ "layers": [
+  [
+   "relu",
+   206
+  ],
+  [
+   "dropout",
+   0.33
+  ]
+ ],
+ "accuracy": 0.8808080808080808
+}

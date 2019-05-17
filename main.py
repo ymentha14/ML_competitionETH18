@@ -231,23 +231,23 @@ def build_model():
 
 def build_output_name():
     output_name = (datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
-
-    if ('origin' in os.path.basename(os.path.normpath(sys.argv[1]))):
-        output_name+='_OR_'
-    nn_string = 'NN:'
-    ss_string = 'SS:'
-    for i in param_out:
-        temp = (i + '=' + str(json_dict[i]))
-        if ( i in params_nn):
-            nn_string += temp     
-        elif ( i in params_ss):
-            ss_string += temp 
-        else:
-            output_name += temp
-    if (USING_SS):
-        output_name += ss_string
-    if (USING_NN):
-        output_name += nn_string
+    if (JSON_MODE):
+        if ('origin' in os.path.basename(os.path.normpath(sys.argv[1]))):
+            output_name+='_OR_'
+        nn_string = 'NN:'
+        ss_string = 'SS:'
+        for i in param_out:
+            temp = (i + '=' + str(json_dict[i]))
+            if ( i in params_nn):
+                nn_string += temp     
+            elif ( i in params_ss):
+                ss_string += temp 
+            else:
+                output_name += temp
+        if (USING_SS):
+            output_name += ss_string
+        if (USING_NN):
+            output_name += nn_string
     return output_name
 ########################################STARTOFCODE##########################
 #Tensorboard part

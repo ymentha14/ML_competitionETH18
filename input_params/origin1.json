@@ -1,11 +1,12 @@
 {
- "paramsout":["ss_model","ss_kernel"],
+ "paramsout":["pca","alpha","neighbor"],
  "UsingNN":false,
  "UsingSS":true,
  "Ratio": 0.8,
+ "pca": 45,
  "ss_model":"LabSpr",
  "ss_kernel":"knn",
  "gamma":20,
- "neighbor":7,
- "alpha":0.2
+ "neighbor":5,
+ "alpha":0.03
 }

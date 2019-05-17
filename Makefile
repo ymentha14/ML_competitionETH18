@@ -1,4 +1,4 @@
-.PHONY: all clean clear
+.PHONY: all clean clear test archive
 # runs the file with the arguments present in the code
 run: main.py
 	@python3 main.py
@@ -10,12 +10,14 @@ all_run:
 	@mpg123 sound/wmelon.mp3
 
 #copy everything in the logs file into the archive file
-archive:
-	@cp -r logs/* archives/ 
+FOLDER := $(shell ls archive | sort -nr | head -n 1)
 
 #display the best current solution in all folders (logs and archive)
 sort:
-	@grep -nr "\"accuracy\":" | awk '{print $$NF,$$0}'  | sort -nr | cut -f2- -d' '
+	@grep -nr "\"accuracy\":" archive/$(FOLDER)/ | awk '{print $$NF,$$0}'  | sort -rn | cut -f2- -d' '
+
+archive:
+	./archive.sh
 
 #run the script allowing to asssess the pca parameters
 pca:

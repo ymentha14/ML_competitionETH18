@@ -1,5 +1,6 @@
 {
  "paramsout":["Ratio","pca"],
+ "UsingNN":true,
  "Ratio": 0.99,
  "pca": 50,
  "ss_model":"LabSpr",

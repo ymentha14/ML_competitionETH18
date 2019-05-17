@@ -1,0 +1,12 @@
+{
+ "paramsout":["pca","ss_model","ss_kernel"],
+ "UsingNN":false,
+ "UsingSS":true,
+ "Ratio": 0.8,
+ "pca": 50,
+ "ss_model":"LabProp",
+ "ss_kernel":"rbf",
+ "gamma":20,
+ "neighbor":7,
+ "alpha":0.2
+}

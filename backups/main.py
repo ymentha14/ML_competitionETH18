@@ -19,8 +19,11 @@ os.environ["CUDA_VISIBLE_DEVICE"]=""
 import sys
 import tensorflow as tf
 import sys
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-from tensorflow import keras
+#from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+#from tensorflow import keras
+import keras
+#from tensorflow import keras
 #tf.set_random_seed(14)
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split

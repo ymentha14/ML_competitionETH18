@@ -1,11 +1,6 @@
 import random
 import json
 import numpy as np
-import torch
-import torch.autograd as autograd
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 #np.random.seed(seed=14)
 #random.seed(14)
 import pandas as pd
@@ -19,8 +14,11 @@ os.environ["CUDA_VISIBLE_DEVICE"]=""
 import sys
 import tensorflow as tf
 import sys
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-from tensorflow import keras
+#from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+#from tensorflow import keras
+import keras
+#from tensorflow import keras
 #tf.set_random_seed(14)
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
@@ -36,7 +34,7 @@ losses = {'mean_squared_error':'mse','mean_absolute_error':'mae','squared_hinge'
 
 dic_opt = {'SGD':keras.optimizers.SGD,'RMSprop':keras.optimizers.RMSprop,'Adagrad':keras.optimizers.Adagrad,'Adadelta':keras.optimizers.Adadelta,'Adam':keras.optimizers.Adam,'Adamax':keras.optimizers.Adamax,'Nadam':keras.optimizers.Nadam}
 
-dic_activ_fctions = {'relu' :tf.nn.relu,'softmax' :tf.nn.softmax,'leak_relu':tf.nn.leaky_relu}
+dic_activ_fctions = {'relu' :tf.nn.relu,'softmax' :tf.nn.softmax}#,'leak_relu':tf.nn.leaky_relu}
 
 #************************
 
@@ -163,7 +161,17 @@ else :
 
 
 #import train values
-data_lab = pd.read_hdf("input_data/train_labeled.h5", "train")
+'''
+data_lab = pd.read_hdf("input_data/h5/train_labeled.h5", "train")
+data_unlab = pd.read_hdf("input_data/h5/train_unlabeled.h5", "train")
+X_submit = (pd.read_hdf("input_data/h5/test.h5", "test")).to_numpy()
+'''
+
+data_lab = pd.read_csv("input_data/csv/train_labeled.csv")
+
+data_unlab = pd.read_csv("input_data/csv/train_unlabeled.csv")
+
+X_submit = (pd.read_csv("input_data/csv/test.csv")).to_numpy()
 
 X_big_lab = (data_lab.to_numpy())[:,1:]
 
@@ -172,15 +180,11 @@ y_big = ((data_lab.to_numpy())[:,0]).astype(int)
 
 X_train_lab, X_valid_lab,y_train,y_valid = train_test_split(X_big_lab,y_big,test_size=0.33)#,random_state=14)
 
-data_unlab = pd.read_hdf("input_data/train_unlabeled.h5", "train")
-
 X_unlab = data_unlab.to_numpy()
 
 X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
 
 y_tot = np.concatenate((y_train,np.full(len(X_unlab),-1)))
-
-X_submit = (pd.read_hdf("input_data/test.h5", "test")).to_numpy()
 
 def pca_preprocess():
     global X_tot, X_train_lab, X_unlab, X_valid_lab, X_submit

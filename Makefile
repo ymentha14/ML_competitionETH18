@@ -14,8 +14,9 @@ FOLDER := $(shell ls archive | sort -nr | head -n 1)
 
 #display the best current solution in all folders (logs and archive)
 sort:
-	@grep -nr "\"accuracy\":" archive/$(FOLDER)/ | awk '{print $$NF,$$0}'  | sort -rn | cut -f2- -d' '
-
+	@grep -nr "accuracy\":" archive/$(FOLDER)/ | awk '{print $$NF,$$0}'  | sort -rn | cut -f2- -d' '
+move:
+	@cp -r logs/* archive/$(FOLDER)/
 archive:
 	./archive.sh
 

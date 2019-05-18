@@ -6,8 +6,8 @@ import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-np.random.seed(seed=14)
-random.seed(14)
+#np.random.seed(seed=14)
+#random.seed(14)
 import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
@@ -21,7 +21,7 @@ import tensorflow as tf
 import sys
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow import keras
-tf.set_random_seed(14)
+#tf.set_random_seed(14)
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.semi_supervised import LabelSpreading
@@ -43,7 +43,7 @@ dic_activ_fctions = {'relu' :tf.nn.relu,'softmax' :tf.nn.softmax,'leak_relu':tf.
 #list of all potential parameters
 params_nn = ['loss','optimizer','learning rate','metrics','decay','momentum','batch_size','number of epochs','layers','patience']
 params_ss = ['ss_model','ss_kernel','gamma','neighbor','alpha']
-param_list = ['Ratio','pca','UsingNN','paramsout','UsingSS']+params_nn+params_ss
+param_list = ['Ratio','pca','UsingNN','paramsout','data_state']+params_nn+params_ss
 param_out = ['Ratio','pca','optimizer','layers']
 
 ###########################Default parameters#####################
@@ -74,7 +74,7 @@ p_epochs = 5
 lay_node = [("relu",206),('dropout',0.33)]
 
 #Semi Supervised 
-USING_SS = True
+p_datastate = 'save'
 #(1)using the sklearn
 # choice between (1.1) LabelPropagation and (1.2) Labelspreading
 #   (1.1)LabelPropagation: choice between knn and rbf
@@ -100,20 +100,19 @@ if (JSON_MODE):
     if os.path.isfile(fn):
         print("successfully read the json file."+sys.argv[1])
         json_dict = json.load(open(fn))
-        assert 'UsingNN' in json_dict and 'UsingSS' in json_dict and 'paramsout' in json_dict
+        assert 'UsingNN' and 'paramsout' in json_dict
         USING_NN = json_dict['UsingNN']
-        USING_SS = json_dict['UsingSS']
         check(json_dict,param_list)
         check(json_dict['paramsout'],param_list)
         #iterate over the printed parameters and ensure they exist
         param_out = json_dict['paramsout']
         RATIO = json_dict['Ratio']
-        if (USING_SS):
-            p_ss_mod = json_dict['ss_model']
-            p_ss_kern = json_dict['ss_kernel']
-            p_gamma = json_dict['gamma']
-            p_neighbors = json_dict['neighbor']
-            p_alpha = json_dict['alpha']
+        p_ss_mod = json_dict['ss_model']
+        p_ss_kern = json_dict['ss_kernel']
+        p_gamma = json_dict['gamma']
+        p_neighbors = json_dict['neighbor']
+        p_alpha = json_dict['alpha']
+        p_datastate = json_dict['data_state']
         if (USING_NN):
             p_loss = json_dict['loss']
             p_opt = json_dict['optimizer']
@@ -171,7 +170,7 @@ X_big_lab = (data_lab.to_numpy())[:,1:]
 y_big = ((data_lab.to_numpy())[:,0]).astype(int)
 
 
-X_train_lab, X_valid_lab,y_train,y_valid = train_test_split(X_big_lab,y_big,test_size=0.33,random_state=14)
+X_train_lab, X_valid_lab,y_train,y_valid = train_test_split(X_big_lab,y_big,test_size=0.33)#,random_state=14)
 
 data_unlab = pd.read_hdf("input_data/train_unlabeled.h5", "train")
 
@@ -244,11 +243,25 @@ def build_output_name():
                 ss_string += temp 
             else:
                 output_name += temp
-        if (USING_SS):
-            output_name += ss_string
+        output_name += ss_string
         if (USING_NN):
             output_name += nn_string
     return output_name
+
+def save_to_csv(X_tot,y_tot):
+    out_x = pd.DataFrame(X_tot)
+    out_y = pd.DataFrame(y_tot) 
+    os.makedirs('./saved_datas',exist_ok=True)
+    path_x = 'saved_datas/X_tot.csv'
+    path_y = 'saved_datas/y_tot.csv'
+    out_x.to_csv(os.path.join(path_x),index = False)
+    out_y.to_csv(os.path.join(path_y),index = False)
+
+def load_xy():
+    print('Loading the X and y...')
+    X_tot = (pd.read_csv('saved_datas/X_tot.csv')).to_numpy()
+    y_tot = (pd.read_csv('saved_datas/y_tot.csv')).to_numpy()
+    return X_tot,y_tot
 ########################################STARTOFCODE##########################
 #Tensorboard part
 logs_base_dir = "./logs"
@@ -259,22 +272,26 @@ output_name = build_output_name()
 log_spec = os.path.join(logs_base_dir,output_name)
 
 os.makedirs(log_spec,exist_ok=True)
-
 #PCA preprocessing
 if (PCA_MODE):
     pca_preprocess()
-
-#Semi supervised algo
-if (USING_SS):
+if (p_datastate == 'save'):
+    #Semi supervised algo
     if (p_ss_mod=='LabSpr'):
             label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha)
     else:            
         label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors)
     print('Start to fit. Run for shelter!')
     label_prop_model.fit(X_tot,y_tot)
-    RESULT_ACC = label_prop_model.score(X_valid_lab,y_valid)
-    print('accuracy obtained on the test set:',RESULT_ACC)
+    RESULT_ACC_SS = label_prop_model.score(X_valid_lab,y_valid)
+    print('accuracy obtained on the test set of the ss algo:',RESULT_ACC_SS)
     y_submit = label_prop_model.predict(X_submit)
+    json_dict['ss_accuracy'] = RESULT_ACC_SS
+    y_unlab = label_prop_model.predict(X_unlab)
+    y_tot = np.concatenate((y_train,y_unlab),axis=0)
+    save_to_csv(X_tot,y_tot)
+else:
+    X_tot,y_tot = load_xy()
 
 if (USING_NN):
     model = build_model()
@@ -288,8 +305,8 @@ if (USING_NN):
     if (EARLY_STOP_MODE):
         call_back_list.append(EarlyStopping( patience=p_patience, verbose=1, mode='min'))
 
-    model.fit(x=X_train_lab,
-            y=y_train,
+    model.fit(x=X_tot,
+            y=y_tot,
             epochs = p_epochs,
             batch_size=p_batch_size,
             validation_data=(X_valid_lab,y_valid),
@@ -303,8 +320,9 @@ if (USING_NN):
 
     y_valid_predicted = np.array([np.argmax(i) for i in y_probas])
 
-    RESULT_ACC = accuracy_score(y_valid_predicted, y_valid)
+    RESULT_ACC_NN = accuracy_score(y_valid_predicted, y_valid)
 
+    json_dict['nn_accuracy'] = RESULT_ACC_NN
 
     #Output
 
@@ -315,7 +333,6 @@ if (USING_NN):
 #creates the output name
 submission_formed(y_submit,output_name)
 
-json_dict['accuracy'] = RESULT_ACC
 
 with open(log_spec+'/recap.json','w') as fp:
     json.dump(json_dict, fp, indent = 1)

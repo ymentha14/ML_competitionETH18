@@ -82,7 +82,7 @@ p_ss_kern = 'knn'
 p_gamma = 20
 p_neighbors = 7
 p_alpha = 0.2
-p_manyfit = False
+p_manyfit = 1
 #(2) using the paper https://github.com/tmadl/semisup-learn or https://epubs.siam.org/doi/abs/10.1137/1.9781611972795.68
 
 ###################################################################
@@ -112,7 +112,8 @@ if (JSON_MODE):
         p_neighbors = json_dict['neighbor']
         p_alpha = json_dict['alpha']
         p_datastate = json_dict['data_state']
-        p_manyfit = json_dict['manyfit']
+        if ('manyfit' in json_dict):
+          p_manyfit = json_dict['manyfit']
         if (USING_NN):
             p_loss = json_dict['loss']
             p_opt = json_dict['optimizer']
@@ -162,32 +163,6 @@ else :
 
 #Adapt the parameters which need the dictionnary
 
-
-#import train values
-'''
-data_lab = pd.read_hdf("input_data/h5/train_labeled.h5", "train")
-data_unlab = pd.read_hdf("input_data/h5/train_unlabeled.h5", "train")
-X_submit = (pd.read_hdf("input_data/h5/test.h5", "test")).to_numpy()
-'''
-
-data_lab = pd.read_csv("input_data/csv/train_labeled.csv")
-
-data_unlab = pd.read_csv("input_data/csv/train_unlabeled.csv")
-
-X_submit = (pd.read_csv("input_data/csv/test.csv")).to_numpy()
-
-X_big_lab = (data_lab.to_numpy())[:,1:]
-
-y_big = ((data_lab.to_numpy())[:,0]).astype(int)
-
-
-X_train_lab, X_valid_lab,y_train,y_valid = train_test_split(X_big_lab,y_big,train_size=RATIO)#,random_state=14)
-
-X_unlab = data_unlab.to_numpy()
-
-X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
-
-y_tot = np.concatenate((y_train,np.full(len(X_unlab),-1)))
 
 def pca_preprocess():
     global X_tot, X_train_lab, X_unlab, X_valid_lab, X_submit
@@ -269,7 +244,30 @@ def load_xy():
     X_tot = (pd.read_csv('saved_datas/X_tot.csv')).to_numpy()
     y_tot = (pd.read_csv('saved_datas/y_tot.csv')).to_numpy()
     return X_tot,y_tot
+
+def init_variables():
+  global X_submit, X_big_lab, y_big, X_train_lab, X_valid_lab, y_train,y_valid,X_unlab,X_tot,y_tot
+  X_submit = X_sub_pd.to_numpy()
+  X_big_lab = (data_lab.to_numpy())[:,1:]
+  y_big = ((data_lab.to_numpy())[:,0]).astype(int)
+  X_train_lab, X_valid_lab,y_train,y_valid = train_test_split(X_big_lab,y_big,train_size=RATIO)#,random_state=14)
+  X_unlab = data_unlab.to_numpy()
+  X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
+  y_tot = np.concatenate((y_train,np.full(len(X_unlab),-1)))
 ########################################STARTOFCODE##########################
+#import train values
+'''
+data_lab = pd.read_hdf("input_data/h5/train_labeled.h5", "train")
+data_unlab = pd.read_hdf("input_data/h5/train_unlabeled.h5", "train")
+X_submit = (pd.read_hdf("input_data/h5/test.h5", "test")).to_numpy()
+'''
+
+data_lab = pd.read_csv("input_data/csv/train_labeled.csv")
+
+data_unlab = pd.read_csv("input_data/csv/train_unlabeled.csv")
+
+X_sub_pd = pd.read_csv("input_data/csv/test.csv")
+
 #Tensorboard part
 logs_base_dir = "./logs"
 os.makedirs(logs_base_dir,exist_ok=True)
@@ -277,40 +275,42 @@ os.makedirs(logs_base_dir,exist_ok=True)
 output_name = build_output_name()
 
 log_spec = os.path.join(logs_base_dir,output_name)
-
 os.makedirs(log_spec,exist_ok=True)
-#PCA preprocessing
-if (PCA_MODE):
-    pca_preprocess()
+
+###############################SEMI SUPERVISED PART############################
 if (p_datastate == 'save'):
+  RESULT_ACC_SS = 0
+  for i in range (p_manyfit):
+    init_variables()
+    #PCA preprocessing
+    if (PCA_MODE):
+        pca_preprocess()
     #Semi supervised algo
     if (p_ss_mod=='LabSpr'):
             label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha)
     else:            
         label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors)
     print('Start to fit. Run for shelter!')
-    RESULT_ACC_SS= 0
-    if (p_manyfit):
-      n_runs = 3
-      for i in range(n_runs):
-        X_train_lab, X_valid_lab,y_train,y_valid = train_test_split(X_big_lab,y_big,train_size=RATIO)#,random_state=14)
-        label_prop_model.fit(X_tot,y_tot)
-        X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
-        y_tot = np.concatenate((y_train,np.full(len(X_unlab),-1)))
-        RESULT_ACC_SS += label_prop_model.score(X_valid_lab,y_valid)
-      RESULT_ACC_SS /= n_runs
-    else:
-      label_prop_model.fit(X_tot,y_tot)
-      RESULT_ACC_SS = label_prop_model.score(X_valid_lab,y_valid)
-    print('accuracy obtained on the test set of the ss algo:',RESULT_ACC_SS)
-    y_submit = label_prop_model.predict(X_submit)
-    json_dict['ss_accuracy'] = RESULT_ACC_SS
-    y_unlab = label_prop_model.predict(X_unlab)
-    y_tot = np.concatenate((y_train,y_unlab),axis=0)
-    #y_tot = label_prop_model.transduction_
-    save_to_csv(X_tot,y_tot)
+    label_prop_model.fit(X_tot,y_tot)
+    RESULT_ACC_SS += label_prop_model.score(X_valid_lab,y_valid)
+    #y_unlab = label_prop_model.predict(X_unlab)
+    #y_tot = np.concatenate((y_train,y_unlab),axis=0)
+
+  y_tot = label_prop_model.transduction_
+  y_submit = label_prop_model.predict(X_submit)
+  save_to_csv(X_tot,y_tot)
+  RESULT_ACC_SS /= p_manyfit
+  json_dict['ss_accuracy'] = RESULT_ACC_SS
+  print('accuracy obtained on the test set of the ss algo:',RESULT_ACC_SS)
 else:
-    X_tot,y_tot = load_xy()
+  init_variables()
+  #PCA preprocessing
+  if (PCA_MODE):
+      pca_preprocess()
+  X_tot,y_tot = load_xy()
+
+
+######################Neural Network part ##################################
 
 if (USING_NN):
     model = build_model()
@@ -343,15 +343,13 @@ if (USING_NN):
 
     json_dict['nn_accuracy'] = RESULT_ACC_NN
 
-    #Output
-
     #predict the output
     y_submit_conf = model.predict(X_submit) #for each input, we still have only the confidences, we need to take the max one
     y_submit = np.array([np.argmax(i) for i in y_submit_conf])
 
+###########################OUTPUT:########################################
 #creates the output name
 submission_formed(y_submit,output_name)
-
 
 with open(log_spec+'/recap.json','w') as fp:
     json.dump(json_dict, fp, indent = 1)

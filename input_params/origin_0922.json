@@ -8,7 +8,7 @@
  ],
  "UsingNN": true,
  "data_state": "load",
- "manyfit":false,
+ "manyfit":3,
  "Ratio": 0.95,
  "pca": 45,
  "ss_model": "LabSpr",

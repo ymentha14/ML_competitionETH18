@@ -40,7 +40,7 @@ dic_activ_fctions = {'relu' :tf.nn.relu,'softmax' :tf.nn.softmax}#,'leak_relu':t
 
 #list of all potential parameters
 params_nn = ['loss','optimizer','learning rate','metrics','decay','momentum','batch_size','number of epochs','layers','patience']
-params_ss = ['ss_model','ss_kernel','gamma','neighbor','alpha']
+params_ss = ['manyfit','ss_model','ss_kernel','gamma','neighbor','alpha']
 param_list = ['Ratio','pca','UsingNN','paramsout','data_state']+params_nn+params_ss
 param_out = ['Ratio','pca','optimizer','layers']
 
@@ -82,6 +82,7 @@ p_ss_kern = 'knn'
 p_gamma = 20
 p_neighbors = 7
 p_alpha = 0.2
+p_manyfit = False
 #(2) using the paper https://github.com/tmadl/semisup-learn or https://epubs.siam.org/doi/abs/10.1137/1.9781611972795.68
 
 ###################################################################
@@ -111,6 +112,7 @@ if (JSON_MODE):
         p_neighbors = json_dict['neighbor']
         p_alpha = json_dict['alpha']
         p_datastate = json_dict['data_state']
+        p_manyfit = json_dict['manyfit']
         if (USING_NN):
             p_loss = json_dict['loss']
             p_opt = json_dict['optimizer']
@@ -150,6 +152,7 @@ else :
             'neighbor':p_neighbors,
             'alpha':p_alpha,
             'layers':lay_node,
+            'manyfit':p_manyfit
             }
     if (PCA_MODE):
         json_dict['pca'] = p_pca
@@ -178,7 +181,7 @@ X_big_lab = (data_lab.to_numpy())[:,1:]
 y_big = ((data_lab.to_numpy())[:,0]).astype(int)
 
 
-X_train_lab, X_valid_lab,y_train,y_valid = train_test_split(X_big_lab,y_big,test_size=0.33)#,random_state=14)
+X_train_lab, X_valid_lab,y_train,y_valid = train_test_split(X_big_lab,y_big,train_size=RATIO)#,random_state=14)
 
 X_unlab = data_unlab.to_numpy()
 
@@ -286,13 +289,25 @@ if (p_datastate == 'save'):
     else:            
         label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors)
     print('Start to fit. Run for shelter!')
-    label_prop_model.fit(X_tot,y_tot)
-    RESULT_ACC_SS = label_prop_model.score(X_valid_lab,y_valid)
+    RESULT_ACC_SS= 0
+    if (p_manyfit):
+      n_runs = 3
+      for i in range(n_runs):
+        X_train_lab, X_valid_lab,y_train,y_valid = train_test_split(X_big_lab,y_big,train_size=RATIO)#,random_state=14)
+        label_prop_model.fit(X_tot,y_tot)
+        X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
+        y_tot = np.concatenate((y_train,np.full(len(X_unlab),-1)))
+        RESULT_ACC_SS += label_prop_model.score(X_valid_lab,y_valid)
+      RESULT_ACC_SS /= n_runs
+    else:
+      label_prop_model.fit(X_tot,y_tot)
+      RESULT_ACC_SS = label_prop_model.score(X_valid_lab,y_valid)
     print('accuracy obtained on the test set of the ss algo:',RESULT_ACC_SS)
     y_submit = label_prop_model.predict(X_submit)
     json_dict['ss_accuracy'] = RESULT_ACC_SS
     y_unlab = label_prop_model.predict(X_unlab)
     y_tot = np.concatenate((y_train,y_unlab),axis=0)
+    #y_tot = label_prop_model.transduction_
     save_to_csv(X_tot,y_tot)
 else:
     X_tot,y_tot = load_xy()
@@ -302,9 +317,9 @@ if (USING_NN):
 
     call_back_list = [] 
 
-    call_back_list.append(ModelCheckpoint(log_spec+'/best_mod.h5',monitor='val_acc',mode='max',verbose=1,save_best_only=True))
+    #call_back_list.append(ModelCheckpoint(log_spec+'/best_mod.h5',monitor='val_acc',mode='max',verbose=1,save_best_only=True))
 
-    call_back_list.append(tf.keras.callbacks.TensorBoard(log_spec,histogram_freq=1,write_grads=True))
+    call_back_list.append(keras.callbacks.TensorBoard(log_spec,histogram_freq=1,write_grads=True))
 
     if (EARLY_STOP_MODE):
         call_back_list.append(EarlyStopping( patience=p_patience, verbose=1, mode='min'))

@@ -1,0 +1,14 @@
+{
+ "paramsout": ["neighbor","alpha"
+ ],
+ "UsingNN": false,
+ "data_state": "save",
+ "manyfit":true,
+ "Ratio": 0.95,
+ "pca": 45,
+ "ss_model": "LabSpr",
+ "ss_kernel": "knn",
+ "gamma": 20,
+ "neighbor": 5,
+ "alpha": 0.01
+}

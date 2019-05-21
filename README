@@ -1,14 +1,33 @@
 Task 4 Machine learning:
 
-old_code: code from the previous task to get inspired from
-
 input_data: data we take from the available zip file that we have to treat
 
 results: results from the different runs
 
 input_params: directory where we store the json dictionaries for the main program
 
-logs: log directory for tensorboard
+logs: log directory 
 
 archives: archive directory for tensorboard
+
+######When opening the euler cluster########
+module load python
+module load python/3.7.1
+
+if it complains because not enough memory==> drop rbf
+
+always check with make all_run in live that it compiles!
+
+small recap of euler:
+
+
+bsub -W 10:32 make all_run
+allows to submit a job which will take approx 10:32, executing the command "make all_run". WATCH OUT FOR THE CURRENT DIRECTORY!
+
+bjobs ==> list the jobs
+
+bkill +JobID (the job id is given by bjobs)
+
+bbjobs (more readable bjobs)
+
 

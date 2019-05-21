@@ -173,8 +173,8 @@ else :
             'neighbor':p_neighbors,
             'alpha':p_alpha,
             'layers':lay_node,
-            'manyfit':p_manyfit
-            'sclaer':p_scaler
+            'manyfit':p_manyfit,
+            'scaler':p_scaler
             }
     if (PCA_MODE):
         json_dict['pca'] = p_pca

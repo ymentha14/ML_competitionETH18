@@ -4,10 +4,12 @@ run: main.py
 	@python3 main.py
 
 # starts the run for all json present in the input file
+submit:
+	@bsub -R "rusage[mem=5000,scratch=5000]" make all_run
 all_run: 
 	@ls $$PWD/input_params/* | xargs -I {} json validate --schema-file={}
 	@ ls $$PWD/input_params/* | xargs -I {} python3 main.py {}
-	@mpg123 sound/wmelon.mp3
+	#@mpg123 sound/wmelon.mp3
 
 #copy everything in the logs file into the archive file
 FOLDER := $(shell ls archive | sort -nr | head -n 1)

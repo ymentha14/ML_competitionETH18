@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import Normalizer
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import os
@@ -26,7 +27,7 @@ from sklearn.semi_supervised import LabelSpreading
 from sklearn.semi_supervised import LabelPropagation
 
 
-#*****dictionnaries******
+#*******************************dictionnaries*****************************
 #allows to keep a small in the json as parameter so that it doesnt overload the filename, and still being able to link it to a real function
 dic_ss_mod = {'LabSpr':LabelSpreading,'LabProp':LabelPropagation}
 
@@ -36,13 +37,36 @@ dic_opt = {'SGD':keras.optimizers.SGD,'RMSprop':keras.optimizers.RMSprop,'Adagra
 
 dic_activ_fctions = {'relu' :tf.nn.relu,'softmax' :tf.nn.softmax}#,'leak_relu':tf.nn.leaky_relu}
 
-#************************
+#************************************************************************
 
 #list of all potential parameters
 params_nn = ['loss','optimizer','learning rate','metrics','decay','momentum','batch_size','number of epochs','layers','patience']
+#loss:              loss used for the NN, cf the dictionnary above
+#optimizer:         Adam,SGD etc, cf the dictionnary above
+#learning rate  
+#metrics            accuracy, we wont change it normally
+#decay:             decay of the learning rate, generally of the order 1e-5
+#momentum:          momentum of the lr
+#patience:          number of epochs you wait if you use earlystopmode for the validation accuracy to increase again
+#layers:            shape of the network
+
 params_ss = ['manyfit','ss_model','ss_kernel','gamma','neighbor','alpha']
-param_list = ['Ratio','pca','UsingNN','paramsout','data_state']+params_nn+params_ss
+#manyfit:           since the ss accuracy has some variance but doesnt take much to be computed, manyfit designs how many independant times we run it before averaging it in order to obtain a better estimation of the accuracy in question
+#ss_model:          'LabSpr' or 'LabProp'. So far, only LabSpr has converged
+#ss_kernel:         'knn' or 'rbf. So far only knn converges. ***WATCH OUT***: when using rbf, euler will complain that you use too much memory!!
+#gamma              parameter for the rbf
+#neighbor           parameter for knn
+#alpha              parameter for knn and rbf: tells at which point you will take the information of your neighbors into account
+
+param_list = ['Ratio','pca','UsingNN','paramsout','data_state','scaler']+params_nn+params_ss
+#Ratio              ratio represented by the training set
+#pca                number of principal components to use. if not present, no pca will be done
+#UsingNN            if set to false, the NN is not used.
+#data_state         'save' or 'load'. If you want to train the NN only without having to run the ss algo again, do one run with data_state to true, and use data_state= 'load for the next ones.
+#scaler             'normal' or 'standard' describes the preprocessing before applying the pca
+#paramsout:         designates which parameters will be present in the output name ==> put the one you're playing with in order to easily see the difference
 param_out = ['Ratio','pca','optimizer','layers']
+
 
 ###########################Default parameters#####################
 #NB:if some mandatory parameters are lacking in the json, default values will be taken
@@ -52,6 +76,7 @@ RATIO = 0.7
 INPUT_DIM = 139
 
 #PCA
+p_scaler = 'Standard'
 PCA_MODE = False
 p_pca = 50
 
@@ -73,20 +98,14 @@ lay_node = [("relu",206),('dropout',0.33)]
 
 #Semi Supervised 
 p_datastate = 'save'
-#(1)using the sklearn
-# choice between (1.1) LabelPropagation and (1.2) Labelspreading
-#   (1.1)LabelPropagation: choice between knn and rbf
-#   (1.2) LableSpreading : same
 p_ss_mod = 'LabSpr'
 p_ss_kern = 'knn'
 p_gamma = 20
 p_neighbors = 7
 p_alpha = 0.2
 p_manyfit = 1
-#(2) using the paper https://github.com/tmadl/semisup-learn or https://epubs.siam.org/doi/abs/10.1137/1.9781611972795.68
-
 ###################################################################
-
+#(1)Extracting the data
 def check(inner,outer):
     for i in inner:
         if not (i in outer): 
@@ -112,6 +131,7 @@ if (JSON_MODE):
         p_neighbors = json_dict['neighbor']
         p_alpha = json_dict['alpha']
         p_datastate = json_dict['data_state']
+        p_scaler = json_dict['scaler']
         if ('manyfit' in json_dict):
           p_manyfit = json_dict['manyfit']
         if (USING_NN):
@@ -154,6 +174,7 @@ else :
             'alpha':p_alpha,
             'layers':lay_node,
             'manyfit':p_manyfit
+            'sclaer':p_scaler
             }
     if (PCA_MODE):
         json_dict['pca'] = p_pca
@@ -161,12 +182,24 @@ else :
     if (EARLY_STOP_MODE):
         jsondict['patience'] = p_patience
 
-#Adapt the parameters which need the dictionnary
-
+def init_variables():
+  global X_submit, X_big_lab, y_big, X_train_lab, X_valid_lab, y_train,y_valid,X_unlab,X_tot,y_tot
+  X_submit = X_sub_pd.to_numpy()
+  X_big_lab = (data_lab.to_numpy())[:,1:]
+  y_big = ((data_lab.to_numpy())[:,0]).astype(int)
+  X_train_lab, X_valid_lab,y_train,y_valid = train_test_split(X_big_lab,y_big,test_size = (1-RATIO))#,random_state=14)
+  X_unlab = data_unlab.to_numpy()
+  X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
+  y_tot = np.concatenate((y_train,np.full(len(X_unlab),-1)))
 
 def pca_preprocess():
     global X_tot, X_train_lab, X_unlab, X_valid_lab, X_submit
-    scaler = StandardScaler()
+    if (p_scaler == 'Standard'):
+      scaler = StandardScaler()
+    elif (p_scaler == 'Normal'):
+      scaler = Normalizer()
+    else:
+      scaler = StandardScaler()
     X_tot = scaler.fit_transform(X_tot)
     X_train_lab = scaler.transform(X_train_lab)
     X_unlab = scaler.transform(X_unlab)
@@ -180,16 +213,6 @@ def pca_preprocess():
     X_valid_lab = pca.transform(X_valid_lab)
     X_submit = pca.transform(X_submit)
 
-
-def submission_formed(predicted_y,name ):
-    result_dir = "./results"
-    os.makedirs(result_dir,exist_ok=True)
-    out = pd.DataFrame(predicted_y)
-    out.insert(0,'Id',range(30000,len(out)+30000))
-    out.rename(columns={"Id": "Id", 0: "y"},inplace = True)
-    path = 'results/'+name+'.csv'
-    out.to_csv(os.path.join(path),index = False)
-#Build model
 def build_model():
     model = keras.Sequential()
     for counter,(name,num) in enumerate(lay_node):
@@ -230,6 +253,16 @@ def build_output_name():
             output_name += nn_string
     return output_name
 
+def submission_formed(predicted_y,name ):
+    result_dir = "./results"
+    os.makedirs(result_dir,exist_ok=True)
+    out = pd.DataFrame(predicted_y)
+    out.insert(0,'Id',range(30000,len(out)+30000))
+    out.rename(columns={"Id": "Id", 0: "y"},inplace = True)
+    path = 'results/'+name+'.csv'
+    out.to_csv(os.path.join(path),index = False)
+
+#useful when p_datastate is set to 'save': save the datas obtained after the ss algo
 def save_to_csv(X_tot,y_tot):
     out_x = pd.DataFrame(X_tot)
     out_y = pd.DataFrame(y_tot) 
@@ -239,39 +272,26 @@ def save_to_csv(X_tot,y_tot):
     out_x.to_csv(os.path.join(path_x),index = False)
     out_y.to_csv(os.path.join(path_y),index = False)
 
+#when p_datastate is set to 'load'
 def load_xy():
     print('Loading the X and y...')
     X_tot = (pd.read_csv('saved_datas/X_tot.csv')).to_numpy()
     y_tot = (pd.read_csv('saved_datas/y_tot.csv')).to_numpy()
     return X_tot,y_tot
 
-def init_variables():
-  global X_submit, X_big_lab, y_big, X_train_lab, X_valid_lab, y_train,y_valid,X_unlab,X_tot,y_tot
-  X_submit = X_sub_pd.to_numpy()
-  X_big_lab = (data_lab.to_numpy())[:,1:]
-  y_big = ((data_lab.to_numpy())[:,0]).astype(int)
-  X_train_lab, X_valid_lab,y_train,y_valid = train_test_split(X_big_lab,y_big,train_size=RATIO)#,random_state=14)
-  X_unlab = data_unlab.to_numpy()
-  X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
-  y_tot = np.concatenate((y_train,np.full(len(X_unlab),-1)))
 ########################################STARTOFCODE##########################
-#import train values
-'''
-data_lab = pd.read_hdf("input_data/h5/train_labeled.h5", "train")
-data_unlab = pd.read_hdf("input_data/h5/train_unlabeled.h5", "train")
-X_submit = (pd.read_hdf("input_data/h5/test.h5", "test")).to_numpy()
-'''
-
+print('##############################START##############################')
 data_lab = pd.read_csv("input_data/csv/train_labeled.csv")
 
 data_unlab = pd.read_csv("input_data/csv/train_unlabeled.csv")
 
 X_sub_pd = pd.read_csv("input_data/csv/test.csv")
 
-#Tensorboard part
+#Tensorboard/log part
 logs_base_dir = "./logs"
 os.makedirs(logs_base_dir,exist_ok=True)
 #Build 
+
 output_name = build_output_name()
 
 log_spec = os.path.join(logs_base_dir,output_name)
@@ -286,16 +306,17 @@ if (p_datastate == 'save'):
     if (PCA_MODE):
         pca_preprocess()
     #Semi supervised algo
-    if (p_ss_mod=='LabSpr'):
+    if (p_ss_mod=='LabSpr' and p_ss_kern=='knn'):
             label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha)
+    elif (p_ss_mod=='LabSpr' and p_ss_kern=='rbf'):
+            label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha,max_iter=1)
     else:            
         label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors)
     print('Start to fit. Run for shelter!')
     label_prop_model.fit(X_tot,y_tot)
-    RESULT_ACC_SS += label_prop_model.score(X_valid_lab,y_valid)
-    #y_unlab = label_prop_model.predict(X_unlab)
-    #y_tot = np.concatenate((y_train,y_unlab),axis=0)
-
+    temp_acc = label_prop_model.score(X_valid_lab,y_valid)
+    print('{} / {} :accuracy = {}'.format(i,p_manyfit,temp_acc))
+    RESULT_ACC_SS += temp_acc  
   y_tot = label_prop_model.transduction_
   y_submit = label_prop_model.predict(X_submit)
   save_to_csv(X_tot,y_tot)
@@ -309,14 +330,13 @@ else:
       pca_preprocess()
   X_tot,y_tot = load_xy()
 
-
-######################Neural Network part ##################################
+##############################NEURAL NETWORK PART ##################################
 
 if (USING_NN):
     model = build_model()
 
     call_back_list = [] 
-
+    #Euler doesn't like the modelcheckpoint
     #call_back_list.append(ModelCheckpoint(log_spec+'/best_mod.h5',monitor='val_acc',mode='max',verbose=1,save_best_only=True))
 
     call_back_list.append(keras.callbacks.TensorBoard(log_spec,histogram_freq=1,write_grads=True))
@@ -330,7 +350,6 @@ if (USING_NN):
             batch_size=p_batch_size,
             validation_data=(X_valid_lab,y_valid),
             callbacks=call_back_list)
-    #if you want shuffling between each epoch
     #model.fit(X_train, y_train,epochs = p_epochs, shuffle=False ,validation_split = 0.1)
 
     test_loss, aut_acc = model.evaluate(X_valid_lab,y_valid)
@@ -353,3 +372,5 @@ submission_formed(y_submit,output_name)
 
 with open(log_spec+'/recap.json','w') as fp:
     json.dump(json_dict, fp, indent = 1)
+print('########################################DONE##################################')
+print("\n")

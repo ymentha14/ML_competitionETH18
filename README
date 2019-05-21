@@ -14,13 +14,16 @@ archives: archive directory for tensorboard
 module load python
 module load python/3.7.1
 
+before running "bsub make all_run" or "make submit" (equivalent) ALWAYS do make all_run locally to ensure absence of bug
+
+
+######ERRORS#####
 if it complains because not enough memory==> drop rbf
 
 always check with make all_run in live that it compiles!
 
-small recap of euler:
 
-
+########Euler commands######
 bsub -W 10:32 make all_run
 allows to submit a job which will take approx 10:32, executing the command "make all_run". WATCH OUT FOR THE CURRENT DIRECTORY!
 

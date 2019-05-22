@@ -5,6 +5,7 @@ submit:
 	@bsub make all_run
 
 all_run: 
+	#make all_run > lsf0001.txt 2>&1
 	@ls $$PWD/input_params/* | xargs -I {} json validate --schema-file={}
 	@ ls $$PWD/input_params/* | xargs -I {} python3 main.py {}
 	#@mpg123 sound/wmelon.mp3

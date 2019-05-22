@@ -1,8 +1,6 @@
 import random
 import json
 import numpy as np
-#np.random.seed(seed=14)
-#random.seed(14)
 import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
@@ -16,26 +14,25 @@ import sys
 import tensorflow as tf
 import sys
 #from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.callbacks import EarlyStopping, ModelCheckpoint
-#from tensorflow import keras
 import keras
-#from tensorflow import keras
-#tf.set_random_seed(14)
+from keras import Sequential
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.layers.normalization import BatchNormalization
+from keras.layers import Dropout, Dense, Activation
+from keras.optimizers import SGD, Adam
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.semi_supervised import LabelSpreading
 from sklearn.semi_supervised import LabelPropagation
+#tf.set_random_seed(14)
+#np.random.seed(seed=14)
+#random.seed(14)
 
 
 #*******************************dictionnaries*****************************
 #allows to keep a small in the json as parameter so that it doesnt overload the filename, and still being able to link it to a real function
 dic_ss_mod = {'LabSpr':LabelSpreading,'LabProp':LabelPropagation}
 
-losses = {'mean_squared_error':'mse','mean_absolute_error':'mae','squared_hinge':'sh','hinge':'h','sparse_categorical_crossentropy':'scc'}
-
-dic_opt = {'SGD':keras.optimizers.SGD,'RMSprop':keras.optimizers.RMSprop,'Adagrad':keras.optimizers.Adagrad,'Adadelta':keras.optimizers.Adadelta,'Adam':keras.optimizers.Adam,'Adamax':keras.optimizers.Adamax,'Nadam':keras.optimizers.Nadam}
-
-dic_activ_fctions = {'relu' :tf.nn.relu,'softmax' :tf.nn.softmax}#,'leak_relu':tf.nn.leaky_relu}
 
 #************************************************************************
 
@@ -214,20 +211,30 @@ def pca_preprocess():
     X_submit = pca.transform(X_submit)
 
 def build_model():
-    model = keras.Sequential()
+    model = Sequential()
     for counter,(name,num) in enumerate(lay_node):
-      if (counter==0):
-        model.add(keras.layers.Dense(num,activation=dic_activ_fctions[name],input_dim=INPUT_DIM))
-      elif (name != 'dropout'):
-        model.add(keras.layers.Dense(num,activation=dic_activ_fctions[name]))
-      else:
-        model.add(keras.layers.Dropout(num))
-    model.add(keras.layers.Dense(10,activation=tf.nn.softmax))
+        if (counter==0):
+            model.add(Dense(num,activation='relu',input_dim=INPUT_DIM))
+        elif (name == 'dropout'):
+            model.add(Dropout(num))
+        elif (name=='relu'):
+            model.add(Dense(num,activation=tf.nn.relu))
+        elif (name=='relu_bn'):
+            model.add(Dense(num))
+            model.add(BatchNormalization()) 
+            model.add(Activation('relu'))
+        else:
+            print('uncorrect name for the layers. exit.')
+            exit()
+    model.add(Dense(10,activation='softmax'))
     #optimizer
     if (p_opt=='SGD'):
-        optimiz = (dic_opt[p_opt])(lr = p_lr,decay = p_decay,momentum = p_momentum)
+        optimiz = SGD(lr = p_lr,decay = p_decay,momentum = p_momentum)
+    elif (p_opt == 'Adam') :
+        optimiz = Adam (lr = p_lr,decay = p_decay)
     else :
-        optimiz = (dic_opt[p_opt])(lr = p_lr,decay = p_decay)
+        print('uncorrect name for the layers. exit.')
+        exit()
     model.compile(optimizer = optimiz,
                  loss = p_loss,
                  metrics=[p_metric])

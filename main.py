@@ -29,13 +29,6 @@ from sklearn.semi_supervised import LabelPropagation
 #random.seed(14)
 
 
-#*******************************dictionnaries*****************************
-#allows to keep a small in the json as parameter so that it doesnt overload the filename, and still being able to link it to a real function
-dic_ss_mod = {'LabSpr':LabelSpreading,'LabProp':LabelPropagation}
-
-
-#************************************************************************
-
 #list of all potential parameters
 params_nn = ['loss','optimizer','learning rate','metrics','decay','momentum','batch_size','number of epochs','layers','patience']
 #loss:              loss used for the NN, cf the dictionnary above
@@ -314,9 +307,9 @@ if (p_datastate == 'save'):
         pca_preprocess()
     #Semi supervised algo
     if (p_ss_mod=='LabSpr' and p_ss_kern=='knn'):
-            label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha)
+            label_prop_model = LabelSpreading(kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha)
     elif (p_ss_mod=='LabSpr' and p_ss_kern=='rbf'):
-            label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha,max_iter=1)
+            label_prop_model = LabelPropagation(kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha,max_iter=1)
     else:            
         label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors)
     print('Start to fit. Run for shelter!')

@@ -21,6 +21,7 @@
  "optimizer": "Adam",
  "learning rate": 0.0001,
  "metrics": "accuracy",
+ "patience":8,
  "decay": 0,
  "momentum": 0.9,
  "batch_size": 16,

@@ -342,7 +342,7 @@ if (USING_NN):
     call_back_list.append(keras.callbacks.TensorBoard(log_spec,histogram_freq=1,write_grads=True))
 
     if (EARLY_STOP_MODE):
-        call_back_list.append(EarlyStopping( patience=p_patience, verbose=1, mode='min'))
+        call_back_list.append(EarlyStopping( patience=p_patience, verbose=1, mode='min',restore_best_weights=True))
 
     model.fit(x=X_tot,
             y=y_tot,

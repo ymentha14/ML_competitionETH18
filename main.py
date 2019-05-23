@@ -181,20 +181,20 @@ def init_variables():
   X_unlab = data_unlab.to_numpy()
   X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
   y_tot = np.concatenate((y_train,np.full(len(X_unlab),-1)))
+  if (p_scaler == 'Standard'):
+     scaler = StandardScaler()
+  elif (p_scaler == 'Normal'):
+     scaler = Normalizer()
+  else:
+     scaler = StandardScaler()
+  X_tot = scaler.fit_transform(X_tot)
+  X_train_lab = scaler.transform(X_train_lab)
+  X_unlab = scaler.transform(X_unlab)
+  X_valid_lab = scaler.transform(X_valid_lab)
+  X_submit = scaler.transform(X_submit)
 
 def pca_preprocess():
     global X_tot, X_train_lab, X_unlab, X_valid_lab, X_submit
-    if (p_scaler == 'Standard'):
-      scaler = StandardScaler()
-    elif (p_scaler == 'Normal'):
-      scaler = Normalizer()
-    else:
-      scaler = StandardScaler()
-    X_tot = scaler.fit_transform(X_tot)
-    X_train_lab = scaler.transform(X_train_lab)
-    X_unlab = scaler.transform(X_unlab)
-    X_valid_lab = scaler.transform(X_valid_lab)
-    X_submit = scaler.transform(X_submit)
     
     pca = PCA(n_components=p_pca)
     X_tot = pca.fit_transform(X_tot)
@@ -263,21 +263,29 @@ def submission_formed(predicted_y,name ):
     out.to_csv(os.path.join(path),index = False)
 
 #useful when p_datastate is set to 'save': save the datas obtained after the ss algo
-def save_to_csv(X_tot,y_tot):
+def save_to_csv(X_tot,y_tot,X_valid,y_valid):
     out_x = pd.DataFrame(X_tot)
     out_y = pd.DataFrame(y_tot) 
+    out_xv = pd.DataFrame(X_valid)
+    out_yv = pd.DataFrame(y_valid) 
     os.makedirs('./saved_datas',exist_ok=True)
     path_x = 'saved_datas/X_tot.csv'
     path_y = 'saved_datas/y_tot.csv'
+    path_xv = 'saved_datas/X_valid.csv'
+    path_yv = 'saved_datas/y_valid.csv'
     out_x.to_csv(os.path.join(path_x),index = False)
     out_y.to_csv(os.path.join(path_y),index = False)
+    out_xv.to_csv(os.path.join(path_xv),index = False)
+    out_yv.to_csv(os.path.join(path_yv),index = False)
 
 #when p_datastate is set to 'load'
 def load_xy():
     print('Loading the X and y...')
+    X_valid_lab =(pd.read_csv('saved_datas/X_valid.csv')).to_numpy()
+    y_valid = (pd.read_csv('saved_datas/y_valid.csv')).to_numpy()
     X_tot = (pd.read_csv('saved_datas/X_tot.csv')).to_numpy()
     y_tot = (pd.read_csv('saved_datas/y_tot.csv')).to_numpy()
-    return X_tot,y_tot
+    return X_tot,y_tot, X_valid_lab,y_valid
 
 ########################################STARTOFCODE##########################
 print('##############################START##############################')
@@ -309,7 +317,7 @@ if (p_datastate == 'save'):
     if (p_ss_mod=='LabSpr' and p_ss_kern=='knn'):
             label_prop_model = LabelSpreading(kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha)
     elif (p_ss_mod=='LabSpr' and p_ss_kern=='rbf'):
-            label_prop_model = LabelPropagation(kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha,max_iter=1)
+            label_prop_model = LabelPropagation(kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha,max_iter=70)
     else:            
         label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors)
     print('Start to fit. Run for shelter!')
@@ -319,7 +327,7 @@ if (p_datastate == 'save'):
     RESULT_ACC_SS += temp_acc  
   y_tot = label_prop_model.transduction_
   y_submit = label_prop_model.predict(X_submit)
-  save_to_csv(X_tot,y_tot)
+  save_to_csv(X_tot,y_tot,X_valid_lab,y_valid)
   RESULT_ACC_SS /= p_manyfit
   json_dict['ss_accuracy'] = RESULT_ACC_SS
   print('accuracy obtained on the test set of the ss algo:',RESULT_ACC_SS)
@@ -328,7 +336,7 @@ else:
   #PCA preprocessing
   if (PCA_MODE):
       pca_preprocess()
-  X_tot,y_tot = load_xy()
+  X_tot,y_tot,X_valid,y_valid = load_xy()
 
 ##############################NEURAL NETWORK PART ##################################
 
@@ -342,7 +350,7 @@ if (USING_NN):
     call_back_list.append(keras.callbacks.TensorBoard(log_spec,histogram_freq=1,write_grads=True))
 
     if (EARLY_STOP_MODE):
-        call_back_list.append(EarlyStopping( patience=p_patience, verbose=1, mode='min'))
+        call_back_list.append(EarlyStopping( patience=p_patience, verbose=1, mode='min',restore_best_weights=True))
 
     model.fit(x=X_tot,
             y=y_tot,

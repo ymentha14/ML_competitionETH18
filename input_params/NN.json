@@ -10,9 +10,9 @@
  "UsingSS": false,
  "data_state": "save",
  "scaler":"standard",
- "patience":8,
+ "patience":30,
  "manyfit": 1,
- "Ratio": 0.9,
+ "Ratio": 0.98,
  "pca": 45,
  "ss_model": "LabSpr",
  "ss_kernel": "knn",
@@ -26,10 +26,10 @@
  "decay": 0,
  "momentum": 0.9,
  "batch_size": 16,
- "number of epochs": 20,
+ "number of epochs": 100,
  "layers": [
   [
-   "relu",
+   "relu_bn",
    1024
   ],
   [
@@ -37,7 +37,7 @@
    0.35
   ],
   [
-   "relu",
+   "relu_bn",
    1024
   ],
   [
@@ -45,7 +45,7 @@
    0.35
   ],
   [
-   "relu",
+   "relu_bn",
    1024
   ],
   [
@@ -53,7 +53,7 @@
    0.35
   ],
   [
-   "relu",
+   "relu_bn",
    1024
   ]
  ]

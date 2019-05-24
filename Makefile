@@ -31,7 +31,7 @@ sort:
 
 #copy everything in the logs file into the archive file
 archive:
-	./archive.sh
+	./prog_archive.sh
 
 #move everything from the log to the most recent archive
 move:

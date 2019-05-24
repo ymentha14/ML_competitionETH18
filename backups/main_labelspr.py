@@ -40,7 +40,7 @@ params_nn = ['loss','optimizer','learning rate','metrics','decay','momentum','ba
 #patience:          number of epochs you wait if you use earlystopmode for the validation accuracy to increase again
 #layers:            shape of the network
 
-params_ss = ['UsingSS','manyfit','ss_model','ss_kernel','gamma','neighbor','alpha']
+params_ss = ['manyfit','ss_model','ss_kernel','gamma','neighbor','alpha']
 #manyfit:           since the ss accuracy has some variance but doesnt take much to be computed, manyfit designs how many independant times we run it before averaging it in order to obtain a better estimation of the accuracy in question
 #ss_model:          'LabSpr' or 'LabProp'. So far, only LabSpr has converged
 #ss_kernel:         'knn' or 'rbf. So far only knn converges. ***WATCH OUT***: when using rbf, euler will complain that you use too much memory!!
@@ -62,12 +62,12 @@ param_out = ['Ratio','pca','optimizer','layers']
 #NB:if some mandatory parameters are lacking in the json, default values will be taken
 
 #Training
-RATIO = 0.9
+RATIO = 0.7
 INPUT_DIM = 139
 
 #PCA
 p_scaler = 'Standard'
-PCA_MODE = True
+PCA_MODE = False
 p_pca = 50
 
 #Early stopping
@@ -75,9 +75,7 @@ EARLY_STOP_MODE = False
 p_patience = 50
 
 #NN
-USING_NN = True
-USING_SS = False
-assert(USING_NN or USING_SS)
+USING_NN = False
 p_loss = "sparse_categorical_crossentropy"
 p_opt = "SGD"
 p_lr = 0.001
@@ -112,7 +110,6 @@ if (JSON_MODE):
         json_dict = json.load(open(fn))
         assert 'UsingNN' and 'paramsout' in json_dict
         USING_NN = json_dict['UsingNN']
-        USING_SS = json_dict['UsingSS']
         check(json_dict,param_list)
         check(json_dict['paramsout'],param_list)
         #iterate over the printed parameters and ensure they exist
@@ -152,8 +149,6 @@ else :
     print("taking the values of the code")
     json_dict = {
             'Ratio':RATIO,
-            'UsingNN': USING_NN,
-            'UsingSS': USING_SS,
             'ss_model':p_ss_mod,
             'ss_kernel':p_ss_kern,
             'loss':p_loss,
@@ -214,7 +209,7 @@ def build_model():
         if (counter==0):
             model.add(Dense(num,activation='relu',input_dim=INPUT_DIM))
         elif (name == 'dropout'):
-            model.add(Dropout(rate=num))
+            model.add(Dropout(num))
         elif (name=='relu'):
             model.add(Dense(num,activation=tf.nn.relu))
         elif (name=='relu_bn'):
@@ -310,61 +305,74 @@ output_name = build_output_name()
 log_spec = os.path.join(logs_base_dir,output_name)
 os.makedirs(log_spec,exist_ok=True)
 
-init_variables()
-if (PCA_MODE):
-  print('DOING PCA')
-  pca_preprocess()
+###############################SEMI SUPERVISED PART############################
+if (p_datastate == 'save'):
+  RESULT_ACC_SS = 0
+  for i in range (p_manyfit):
+    init_variables()
+    #PCA preprocessing
+    if (PCA_MODE):
+        pca_preprocess()
+    #Semi supervised algo
+    if (p_ss_mod=='LabSpr' and p_ss_kern=='knn'):
+            label_prop_model = LabelSpreading(kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha)
+    elif (p_ss_mod=='LabSpr' and p_ss_kern=='rbf'):
+            label_prop_model = LabelPropagation(kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors,alpha=p_alpha,max_iter=70)
+    else:            
+        label_prop_model = dic_ss_mod[p_ss_mod](kernel=p_ss_kern,gamma=p_gamma,n_neighbors=p_neighbors)
+    print('Start to fit. Run for shelter!')
+    label_prop_model.fit(X_tot,y_tot)
+    temp_acc = label_prop_model.score(X_valid_lab,y_valid)
+    print('{} / {} :accuracy = {}'.format(i,p_manyfit,temp_acc))
+    RESULT_ACC_SS += temp_acc  
+  y_tot = label_prop_model.transduction_
+  y_submit = label_prop_model.predict(X_submit)
+  save_to_csv(X_tot,y_tot,X_valid_lab,y_valid)
+  RESULT_ACC_SS /= p_manyfit
+  json_dict['ss_accuracy'] = RESULT_ACC_SS
+  print('accuracy obtained on the test set of the ss algo:',RESULT_ACC_SS)
+else:
+  init_variables()
+  #PCA preprocessing
+  if (PCA_MODE):
+      pca_preprocess()
+  X_tot,y_tot,X_valid,y_valid = load_xy()
 
 ##############################NEURAL NETWORK PART ##################################
 
-print('Building MODEL')
-model = build_model()
+if (USING_NN):
+    model = build_model()
 
-call_back_list = [] 
-#Euler doesn't like the modelcheckpoint
-#call_back_list.append(ModelCheckpoint(log_spec+'/best_mod.h5',monitor='val_acc',mode='max',verbose=1,save_best_only=True))
+    call_back_list = [] 
+    #Euler doesn't like the modelcheckpoint
+    #call_back_list.append(ModelCheckpoint(log_spec+'/best_mod.h5',monitor='val_acc',mode='max',verbose=1,save_best_only=True))
 
-call_back_list.append(keras.callbacks.TensorBoard(log_spec,histogram_freq=1,write_grads=True))
+    call_back_list.append(keras.callbacks.TensorBoard(log_spec,histogram_freq=1,write_grads=True))
 
-if (EARLY_STOP_MODE):
-    call_back_list.append(EarlyStopping( patience=p_patience, verbose=1, mode='min',restore_best_weights=True))
+    if (EARLY_STOP_MODE):
+        call_back_list.append(EarlyStopping( patience=p_patience, verbose=1, mode='min',restore_best_weights=True))
 
-print('FITTING FIRST MODEL on {} datas.'.format(len(X_train_lab)))
-model.fit(x=X_train_lab,
-        y=y_train,
-        epochs = p_epochs,
-        batch_size=p_batch_size,
-        validation_data=(X_valid_lab,y_valid))
+    model.fit(x=X_tot,
+            y=y_tot,
+            epochs = p_epochs,
+            batch_size=p_batch_size,
+            validation_data=(X_valid_lab,y_valid),
+            callbacks=call_back_list)
+    #model.fit(X_train, y_train,epochs = p_epochs, shuffle=False ,validation_split = 0.1)
 
-y_missing = model.predict(X_unlab)
-y_missing = np.array([np.argmax(i) for i in y_missing])
-X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
-y_tot = np.concatenate((y_train,y_missing),axis=0)
+    test_loss, aut_acc = model.evaluate(X_valid_lab,y_valid)
 
-y_probas0 = (model.predict(X_valid_lab))
-y_valid_predicted0 = np.array([np.argmax(i) for i in y_probas0])
-RESULT_ACC_NN0 = accuracy_score(y_valid_predicted0, y_valid)
-json_dict['nn0_accuracy'] = RESULT_ACC_NN0
-model.fit(x=X_tot,
-        y=y_tot,
-        epochs = p_epochs,
-        batch_size=p_batch_size,
-        validation_data=(X_valid_lab,y_valid),
-        callbacks=call_back_list)
+    y_probas = (model.predict(X_valid_lab))
 
-test_loss, aut_acc = model.evaluate(X_valid_lab,y_valid)
+    y_valid_predicted = np.array([np.argmax(i) for i in y_probas])
 
-y_probas = (model.predict(X_valid_lab))
+    RESULT_ACC_NN = accuracy_score(y_valid_predicted, y_valid)
 
-y_valid_predicted = np.array([np.argmax(i) for i in y_probas])
+    json_dict['nn_accuracy'] = RESULT_ACC_NN
 
-RESULT_ACC_NN = accuracy_score(y_valid_predicted, y_valid)
-
-json_dict['nn_accuracy'] = RESULT_ACC_NN
-
-#predict the output
-y_submit_conf = model.predict(X_submit) #for each input, we still have only the confidences, we need to take the max one
-y_submit = np.array([np.argmax(i) for i in y_submit_conf])
+    #predict the output
+    y_submit_conf = model.predict(X_submit) #for each input, we still have only the confidences, we need to take the max one
+    y_submit = np.array([np.argmax(i) for i in y_submit_conf])
 
 ###########################OUTPUT:########################################
 #creates the output name

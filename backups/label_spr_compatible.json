@@ -7,6 +7,7 @@
   "number of epochs"
  ],
  "UsingNN": true,
+ "UsingSS": false,
  "data_state": "save",
  "scaler":"standard",
  "patience":10,
@@ -28,7 +29,7 @@
  "number of epochs": 20,
  "layers": [
   [
-   "relu_bn",
+   "relu",
    1024
   ],
   [
@@ -36,7 +37,7 @@
    0.35
   ],
   [
-   "relu_bn",
+   "relu",
    1024
   ],
   [
@@ -44,7 +45,7 @@
    0.35
   ],
   [
-   "relu_bn",
+   "relu",
    1024
   ],
   [
@@ -52,7 +53,7 @@
    0.35
   ],
   [
-   "relu_bn",
+   "relu",
    1024
   ]
  ]

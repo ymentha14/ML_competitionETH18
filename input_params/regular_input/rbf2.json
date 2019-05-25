@@ -1,7 +1,7 @@
 {
  "paramsout": [
    "gamma",
-   "alpha"  
+   "alpha" 
  ],
  "UsingNN": false,
  "UsingSS": true,
@@ -13,7 +13,7 @@
  "pca": 45,
  "ss_model": "LabProp",
  "ss_kernel": "rbf",
- "gamma": 0.2,
+ "gamma": 0.03,
  "neighbor": 5,
  "alpha": 0.7,
  "loss": "sparse_categorical_crossentropy",

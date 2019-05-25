@@ -200,8 +200,8 @@ class SemiSupLabeler():
         #Semi supervised algo
         if (self.ss_mod=='LabSpr' and self.ss_kern=='knn'):
                 self.label_prop_model = LabelSpreading(kernel='knn',gamma=self.gamma,n_neighbors=self.neighbors,alpha=self.alpha)
-        elif (self.ss_mod=='LabSpr' and self.ss_kern=='rbf'):
-                self.label_prop_model = LabelSpreading(kernel='rbf',gamma=self.gamma,n_neighbors=self.neighbors,alpha=self.alpha,max_iter=1)
+        elif (self.ss_mod=='LabProp' and self.ss_kern=='rbf'):
+                self.label_prop_model = LabelPropagation(kernel='rbf',gamma=self.gamma,n_neighbors=self.neighbors,alpha=self.alpha,max_iter=10)
         else:            
             self.label_prop_model = LabelPropagtion(kernel=self.ss_kern,gamma=self.gamma,n_neighbors=self.neighbors)
         print('Start to fit. Run for shelter!')

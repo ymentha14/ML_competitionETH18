@@ -215,7 +215,6 @@ class SemiSupLabeler():
           y_big = ((self.data_lab.to_numpy())[:,0]).astype(int)
           X_train_lab, X_valid_lab,self.y_train,self.y_valid = train_test_split(X_big_lab,y_big,test_size = (1-self.RATIO))#,random_state=14)
           X_unlab = self.data_unlab.to_numpy()
-          self.y_tot = np.concatenate((self.y_train,np.full(len(X_unlab),-1)))
 
           self.init_class_variable(X_train_lab, self.y_train,X_unlab,X_valid_lab,self.y_valid,X_submit)
 
@@ -228,8 +227,7 @@ class SemiSupLabeler():
           X_submit = SemiSupLabeler.X_SUBMIT
 
       X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
-
-
+      self.y_tot = np.concatenate((self.y_train,np.full(len(X_unlab),-1)))
 
       if (self.scaler == 'Standard'):
          scaler = StandardScaler()
@@ -250,12 +248,12 @@ class SemiSupLabeler():
         self.init_variables()
         #PCA preprocessing
         if (self.PCA_MODE):
-            self.pca_preprocess()
+            self.pca_preprocess(self.pca)
         #Semi supervised algo
         if (self.ss_mod=='LabSpr' and self.ss_kern=='knn'):
                 self.label_prop_model = LabelSpreading(kernel='knn',gamma=self.gamma,n_neighbors=self.neighbors,alpha=self.alpha)
-        elif (self.ss_mod=='LabSpr' and self.ss_kern=='rbf'):
-                self.label_prop_model = LabelSpreading(kernel='rbf',gamma=self.gamma,n_neighbors=self.neighbors,alpha=self.alpha,max_iter=1)
+        elif (self.ss_mod=='LabProp' and self.ss_kern=='rbf'):
+                self.label_prop_model = LabelPropagation(kernel='rbf',gamma=self.gamma,n_neighbors=self.neighbors,alpha=self.alpha,max_iter=1)
         else:            
             self.label_prop_model = LabelPropagtion(kernel=self.ss_kern,gamma=self.gamma,n_neighbors=self.neighbors)
         print('Start to fit. Run for shelter!')
@@ -264,10 +262,10 @@ class SemiSupLabeler():
         print('{} / {} :accuracy = {}'.format(i,self.manyfit,temp_acc))
         RESULT_ACC_SS += temp_acc   
 
-      self.y_tot = label_prop_model.transduction_
-      self.y_submit = label_prop_model.predict(X_submit)
-      if (self.data_state == "save"):
-        self.save_to_csv(self.X_tot,self.y_tot)
+      self.y_tot = self.label_prop_model.transduction_
+      self.y_submit = self.label_prop_model.predict(self.X_submit)
+      if (self.datastate == "save"):
+        self.save_to_csv(self.X_tot,self.y_tot,self.X_valid_lab,self.y_valid)
       RESULT_ACC_SS /= self.manyfit
       self.json_dict['ss_accuracy'] = RESULT_ACC_SS
       print('accuracy obtained on the test set of the ss algo:',RESULT_ACC_SS)
@@ -449,11 +447,8 @@ y_nn_sub= machine_nn.get_y_submit()
 #Build knn 
 if (machine_knn.PCA_MODE):
   machine_knn.pca_preprocess(machine_nn.pca)
-if (machine_knn.USING_NN):
-  machine_knn.build_model()
-  machine_knn.fit_lab()
-  machine_knn.complete_unlab()
-  machine_knn.fit_tot()
+if (machine_knn.USING_SS):
+    machine_knn.label_spr()
 machine_knn.out()
 y_knn_val= machine_knn.get_y_val()
 y_knn_sub = machine_knn.get_y_submit()
@@ -462,11 +457,8 @@ y_knn_sub = machine_knn.get_y_submit()
 #Build rbf 
 if (machine_rbf.PCA_MODE):
   machine_rbf.pca_preprocess(machine_nn.pca)
-if (machine_rbf.USING_NN):
-  machine_rbf.build_model()
-  machine_rbf.fit_lab()
-  machine_rbf.complete_unlab()
-  machine_rbf.fit_tot()
+assert(machine_rbf.USING_SS)
+machine_rbf.label_spr()
 machine_rbf.out()
 y_rbf_val= machine_rbf.get_y_val()
 y_rbf_sub = machine_rbf.get_y_submit()

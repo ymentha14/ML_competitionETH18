@@ -210,10 +210,10 @@ class SemiSupLabeler():
         print('{} / {} :accuracy = {}'.format(i,self.manyfit,temp_acc))
         RESULT_ACC_SS += temp_acc   
 
-      self.y_tot = label_prop_model.transduction_
-      self.y_submit = label_prop_model.predict(X_submit)
-      if (self.data_state == "save"):
-        self.save_to_csv(self.X_tot,self.y_tot)
+      self.y_tot = self.label_prop_model.transduction_
+      self.y_submit = self.label_prop_model.predict(self.X_submit)
+      if (self.datastate == "save"):
+        self.save_to_csv(self.X_tot,self.y_tot,self.X_valid_lab,self.y_valid)
       RESULT_ACC_SS /= self.manyfit
       self.json_dict['ss_accuracy'] = RESULT_ACC_SS
       print('accuracy obtained on the test set of the ss algo:',RESULT_ACC_SS)

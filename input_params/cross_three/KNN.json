@@ -6,8 +6,8 @@
   "patience",
   "number of epochs"
  ],
- "UsingNN": true,
- "UsingSS": false,
+ "UsingNN": false,
+ "UsingSS": true,
  "data_state": "save",
  "scaler":"standard",
  "patience":30,

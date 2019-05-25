@@ -41,7 +41,7 @@ class SemiSupLabeler():
       #patience:          number of epochs you wait if you use earlystopmode for the validation accuracy to increase again
       #layers:            shape of the network
 
-    params_s = ['UsingSS','manyfit','ss_model','ss_kernel','gamma','neighbor','alpha']
+    params_ss = ['UsingSS','manyfit','ss_model','ss_kernel','gamma','neighbor','alpha']
       #manyfit:           since the ss accuracy has some variance but doesnt take much to be computed, manyfit designs how many independant times we run it before averaging it in order to obtain a better estimation of the accuracy in question
       #ss_model:          'LabSpr' or 'LabProp'. So far, only LabSpr has converged
       #ss_kernel:         'knn' or 'rbf. So far only knn converges. ***WATCH OUT***: when using rbf, euler will complain that you use too much memory!!
@@ -49,7 +49,7 @@ class SemiSupLabeler():
       #neighbor           parameter for knn
       #alpha              parameter for knn and rbf: tells at which point you will take the information of your neighbors into account
 
-    param_list = ['Ratio','pca','UsingNN','paramsout','data_state','scaler']+params_nn+params_s
+    param_list = ['Ratio','pca','UsingNN','paramsout','data_state','scaler']+params_nn+params_ss
       #Ratio              ratio represented by the training set
       #pca                number of principal components to use. if not present, no pca will be done
       #UsingNN            if set to false, the NN is not used.
@@ -132,15 +132,16 @@ class SemiSupLabeler():
               #iterate over the printed parameters and ensure they exist
               self.param_out = self.json_dict['paramsout']
               self.RATIO = self.json_dict['Ratio']
-              self.ss_mod = self.json_dict['ss_model']
-              self.ss_kern = self.json_dict['ss_kernel']
-              self.gamma = self.json_dict['gamma']
-              self.neighbors = self.json_dict['neighbor']
-              self.alpha = self.json_dict['alpha']
               self.datastate = self.json_dict['data_state']
               self.scaler = self.json_dict['scaler']
-              if ('manyfit' in self.json_dict):
-                self.manyfit = self.json_dict['manyfit']
+              if (self.USING_SS):
+                self.ss_mod = self.json_dict['ss_model']
+                self.ss_kern = self.json_dict['ss_kernel']
+                self.gamma = self.json_dict['gamma']
+                self.neighbors = self.json_dict['neighbor']
+                self.alpha = self.json_dict['alpha']
+                if ('manyfit' in self.json_dict):
+                  self.manyfit = self.json_dict['manyfit']
               if (self.USING_NN):
                   self.loss = self.json_dict['loss']
                   self.opt = self.json_dict['optimizer']
@@ -257,6 +258,9 @@ class SemiSupLabeler():
         else:            
             self.label_prop_model = LabelPropagtion(kernel=self.ss_kern,gamma=self.gamma,n_neighbors=self.neighbors)
         print('Start to fit. Run for shelter!')
+        print("\n")
+        print(self.X_tot)
+        print("\n")
         self.label_prop_model.fit(self.X_tot,self.y_tot)
         temp_acc = self.label_prop_model.score(self.X_valid_lab,self.y_valid)
         print('{} / {} :accuracy = {}'.format(i,self.manyfit,temp_acc))
@@ -324,7 +328,9 @@ class SemiSupLabeler():
       #call_back_list.append(keras.callbacks.TensorBoard(self.log_spec,histogram_freq=1,write_grads=True))
       if (self.EARLY_STOP_MODE):
           call_back_list.append(EarlyStopping( patience=self.patience, verbose=1, mode='min',restore_best_weights=True))
-
+      print("\n")
+      print(X)
+      print("\n")
       self.model.fit(x=X,
               y=y,
               epochs = self.epochs,
@@ -404,7 +410,6 @@ class SemiSupLabeler():
 
       with open(self.log_spec+'/recap.json','w') as fp:
           json.dump(self.json_dict, fp, indent = 1)
-      print('########################################DONE##################################')
       print("\n")
 
 ########################################STARTOFCODE##########################
@@ -432,6 +437,7 @@ machine_knn = SemiSupLabeler(data_lab,data_unlab,data_submit,path_knn)
 machine_rbf = SemiSupLabeler(data_lab,data_unlab,data_submit,path_rbf)
 
 #Build NN
+print('**************BUILD NN*********************')
 if (machine_nn.PCA_MODE):
   machine_nn.pca_preprocess(machine_nn.pca)
 if (machine_nn.USING_NN):
@@ -442,9 +448,10 @@ if (machine_nn.USING_NN):
 machine_nn.out()
 y_nn_val= machine_nn.get_y_val()
 y_nn_sub= machine_nn.get_y_submit()
-
+print('**************DONE NN*********************')
 
 #Build knn 
+print('**************BUILD KNN*********************')
 if (machine_knn.PCA_MODE):
   machine_knn.pca_preprocess(machine_nn.pca)
 if (machine_knn.USING_SS):
@@ -452,9 +459,10 @@ if (machine_knn.USING_SS):
 machine_knn.out()
 y_knn_val= machine_knn.get_y_val()
 y_knn_sub = machine_knn.get_y_submit()
-
+print('**************DONE KNN*********************')
 
 #Build rbf 
+print('**************BUILD RBF*********************')
 if (machine_rbf.PCA_MODE):
   machine_rbf.pca_preprocess(machine_nn.pca)
 assert(machine_rbf.USING_SS)
@@ -462,6 +470,7 @@ machine_rbf.label_spr()
 machine_rbf.out()
 y_rbf_val= machine_rbf.get_y_val()
 y_rbf_sub = machine_rbf.get_y_submit()
+print('**************DONE KNN*********************')
 
 def merge_maj(y_nn,y_knn,y_rbf):
     def merge(X,y,z):
@@ -484,3 +493,4 @@ dump.to_csv(os.path.join('logs/merge.csv'),index = False)
 merge_name = "NN_RBF_KNN"
 
 SemiSupLabeler.submission_formed(y_sub_merge,merge_name)
+print('########################################DONE##################################')

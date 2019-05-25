@@ -7,6 +7,7 @@ initialize:
 submit:
 	@bsub make all_run
 triple:
+	@ls $$PWD/input_params/cross_three/* | xargs -I {} json validate --schema-file={}
 	@python3 triple_main.py
 all_run: 
 	#make all_run > lsf0001.txt 2>&1

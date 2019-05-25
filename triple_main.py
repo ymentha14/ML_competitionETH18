@@ -30,11 +30,8 @@ from sklearn.semi_supervised import LabelPropagation
 
 class SemiSupLabeler():
 
-    def __init__(self,data_lab,data_unlab,data_submit):
-      ###########################Default parameters#####################
-      #NB:if some mandatory parameters are lacking in the json, default values will be taken
       #list of all potential parameters
-      self.params_nn = ['loss','optimizer','learning rate','metrics','decay','momentum','batch_size','number of epochs','layers','patience']
+    params_nn = ['loss','optimizer','learning rate','metrics','decay','momentum','batch_size','number of epochs','layers','patience']
       #loss:              loss used for the NN, cf the dictionnary above
       #optimizer:         Adam,SGD etc, cf the dictionnary above
       #learning rate  
@@ -44,7 +41,7 @@ class SemiSupLabeler():
       #patience:          number of epochs you wait if you use earlystopmode for the validation accuracy to increase again
       #layers:            shape of the network
 
-      self.params_ss = ['UsingSS','manyfit','ss_model','ss_kernel','gamma','neighbor','alpha']
+    params_s = ['UsingSS','manyfit','ss_model','ss_kernel','gamma','neighbor','alpha']
       #manyfit:           since the ss accuracy has some variance but doesnt take much to be computed, manyfit designs how many independant times we run it before averaging it in order to obtain a better estimation of the accuracy in question
       #ss_model:          'LabSpr' or 'LabProp'. So far, only LabSpr has converged
       #ss_kernel:         'knn' or 'rbf. So far only knn converges. ***WATCH OUT***: when using rbf, euler will complain that you use too much memory!!
@@ -52,15 +49,29 @@ class SemiSupLabeler():
       #neighbor           parameter for knn
       #alpha              parameter for knn and rbf: tells at which point you will take the information of your neighbors into account
 
-      self.param_list = ['Ratio','pca','UsingNN','paramsout','data_state','scaler']+self.params_nn+self.params_ss
+    param_list = ['Ratio','pca','UsingNN','paramsout','data_state','scaler']+params_nn+params_s
       #Ratio              ratio represented by the training set
       #pca                number of principal components to use. if not present, no pca will be done
       #UsingNN            if set to false, the NN is not used.
       #data_state         'save' or 'load'. If you want to train the NN only without having to run the ss algo again, do one run with data_state to true, and use data_state= 'load for the next ones.
       #scaler             'normal' or 'standard' describes the preprocessing before applying the pca
       #paramsout:         designates which parameters will be present in the output name ==> put the one you're playing with in order to easily see the difference
-      self.param_out = ['Ratio','pca','optimizer','layers']
 
+
+    X_TRAIN_LAB = np.empty(0)
+    Y_TRAIN = np.empty(0)
+    X_UNLAB = np.empty(0)
+    X_VALID_LAB = np.empty(0)
+    Y_VALID = np.empty(0)
+    X_SUBMIT = np.empty(0)
+    INIT_CLASS = False
+
+
+    def __init__(self,data_lab,data_unlab,data_submit,path):
+      ###########################Default parameters#####################
+      #NB:if some mandatory parameters are lacking in the json, default values will be taken
+      self.param_out = ['Ratio','pca','optimizer','layers']
+      self.path = path      
       self.data_lab = data_lab
       self.data_unlab = data_unlab
       self.data_submit = data_submit
@@ -108,17 +119,16 @@ class SemiSupLabeler():
                   print('unknown parameter. abort.',i)
                   exit()
 
-      self.JSON_MODE = (len(sys.argv) >1)
+      self.JSON_MODE = (path != None)
       if (self.JSON_MODE):
-          fn = sys.argv[1]
-          if os.path.isfile(fn):
-              print("successfully read the json file."+sys.argv[1])
-              self.json_dict = json.load(open(fn))
+          if os.path.isfile(self.path):
+              print("successfully read the json file."+self.path)
+              self.json_dict = json.load(open(self.path))
               assert ('UsingNN' and 'paramsout' in self.json_dict)
               self.USING_NN = self.json_dict['UsingNN']
               self.USING_SS = self.json_dict['UsingSS']
-              check(self.json_dict,self.param_list)
-              check(self.json_dict['paramsout'],self.param_list)
+              check(self.json_dict,SemiSupLabeler.param_list)
+              check(self.json_dict['paramsout'],SemiSupLabeler.param_list)
               #iterate over the printed parameters and ensure they exist
               self.param_out = self.json_dict['paramsout']
               self.RATIO = self.json_dict['Ratio']
@@ -187,7 +197,51 @@ class SemiSupLabeler():
       self.log_spec = os.path.join(self.logs_base_dir,self.output_name)
       os.makedirs(self.log_spec,exist_ok=True)
       self.init_variables()
+    
 
+    def init_class_variable(self,X_train_lab,y_train,X_unlab,X_valid_lab,y_valid,X_submit):
+        assert(SemiSupLabeler.INIT_CLASS == False)
+        SemiSupLabeler.X_TRAIN_LAB = np.copy(X_train_lab)
+        SemiSupLabeler.Y_TRAIN = np.copy(y_train)
+        SemiSupLabeler.X_UNLAB = np.copy(X_unlab)
+        SemiSupLabeler.X_VALID_LAB = np.copy(X_valid_lab)
+        SemiSupLabeler.Y_VALID = np.copy(y_valid)
+        SemiSupLabeler.X_SUBMIT = np.copy(X_submit)
+        SemiSupLabeler.INIT_CLASS = True
+    def init_variables(self):
+      if (not SemiSupLabeler.INIT_CLASS):
+          X_submit = self.data_submit.to_numpy()
+          X_big_lab = (self.data_lab.to_numpy())[:,1:]
+          y_big = ((self.data_lab.to_numpy())[:,0]).astype(int)
+          X_train_lab, X_valid_lab,self.y_train,self.y_valid = train_test_split(X_big_lab,y_big,test_size = (1-self.RATIO))#,random_state=14)
+          X_unlab = self.data_unlab.to_numpy()
+          self.y_tot = np.concatenate((self.y_train,np.full(len(X_unlab),-1)))
+
+          self.init_class_variable(X_train_lab, self.y_train,X_unlab,X_valid_lab,self.y_valid,X_submit)
+
+      else:
+          X_train_lab = SemiSupLabeler.X_TRAIN_LAB
+          self.y_train = SemiSupLabeler.Y_TRAIN
+          X_unlab = SemiSupLabeler.X_UNLAB
+          X_valid_lab = SemiSupLabeler.X_VALID_LAB
+          self.y_valid = SemiSupLabeler.Y_VALID
+          X_submit = SemiSupLabeler.X_SUBMIT
+
+      X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
+
+
+
+      if (self.scaler == 'Standard'):
+         scaler = StandardScaler()
+      elif (self.scaler == 'Normal'):
+         scaler = Normalizer()
+      else:
+         scaler = StandardScaler()
+      self.X_tot = scaler.fit_transform(X_tot)
+      self.X_train_lab = scaler.transform(X_train_lab)
+      self.X_unlab = scaler.transform(X_unlab)
+      self.X_valid_lab = scaler.transform(X_valid_lab)
+      self.X_submit = scaler.transform(X_submit)
 
 
     def label_spr(self):
@@ -196,7 +250,7 @@ class SemiSupLabeler():
         self.init_variables()
         #PCA preprocessing
         if (self.PCA_MODE):
-            self.pca_preprocess(self.pca)
+            self.pca_preprocess()
         #Semi supervised algo
         if (self.ss_mod=='LabSpr' and self.ss_kern=='knn'):
                 self.label_prop_model = LabelSpreading(kernel='knn',gamma=self.gamma,n_neighbors=self.neighbors,alpha=self.alpha)
@@ -220,26 +274,6 @@ class SemiSupLabeler():
 
     def labelspr_predict(self,X):
       return self.label_prop_model.predict(X)
-
-    def init_variables(self):
-      X_submit = self.data_submit.to_numpy()
-      X_big_lab = (self.data_lab.to_numpy())[:,1:]
-      y_big = ((self.data_lab.to_numpy())[:,0]).astype(int)
-      X_train_lab, X_valid_lab,self.y_train,self.y_valid = train_test_split(X_big_lab,y_big,test_size = (1-self.RATIO))#,random_state=14)
-      X_unlab = self.data_unlab.to_numpy()
-      X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
-      self.y_tot = np.concatenate((self.y_train,np.full(len(X_unlab),-1)))
-      if (self.scaler == 'Standard'):
-         scaler = StandardScaler()
-      elif (self.scaler == 'Normal'):
-         scaler = Normalizer()
-      else:
-         scaler = StandardScaler()
-      self.X_tot = scaler.fit_transform(X_tot)
-      self.X_train_lab = scaler.transform(X_train_lab)
-      self.X_unlab = scaler.transform(X_unlab)
-      self.X_valid_lab = scaler.transform(X_valid_lab)
-      self.X_submit = scaler.transform(X_submit)
 
     def pca_preprocess(self,number): 
         pca_mod = PCA(n_components= number)
@@ -303,8 +337,10 @@ class SemiSupLabeler():
       self.y_submit = np.array([np.argmax(i) for i in y_temp]) 
       return aut_acc
       
-
-
+    def get_y_submit(self):
+        return self.y_submit
+    def get_y_val(self):
+        return self.y_valid
     def complete_unlab(self):
       y_missing = self.model.predict(self.X_unlab)
       y_missing = np.array([np.argmax(i) for i in y_missing])
@@ -315,15 +351,15 @@ class SemiSupLabeler():
     def build_output_name(self):
         self.output_name = (datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
         if (self.JSON_MODE):
-            if ('origin' in os.path.basename(os.path.normpath(sys.argv[1]))):
+            if ('origin' in os.path.basename(os.path.normpath(self.path))   ):
                 self.output_name+='_OR_'
             nn_string = 'NN:'
             ss_string = 'SS:'
             for i in self.param_out:
                 temp = (i + '=' + str(self.json_dict[i]))
-                if ( i in self.params_nn):
+                if ( i in SemiSupLabeler.params_nn):
                     nn_string += temp     
-                elif ( i in self.params_ss):
+                elif ( i in SemiSupLabeler.params_ss):
                     ss_string += temp 
                 else:
                     self.output_name += temp
@@ -331,7 +367,7 @@ class SemiSupLabeler():
             if (self.USING_NN):
                 self.output_name += nn_string
 
-    def submission_formed(self,predicted_y,name ):
+    def submission_formed(predicted_y,name ):
         result_dir = "./results"
         os.makedirs(result_dir,exist_ok=True)
         out = pd.DataFrame(predicted_y)
@@ -366,7 +402,7 @@ class SemiSupLabeler():
         self.y_tot = (pd.read_csv('saved_datas/y_tot.csv')).to_numpy()
 
     def out(self):
-      self.submission_formed(self.y_submit,self.output_name)
+      SemiSupLabeler.submission_formed(self.y_submit,self.output_name)
 
       with open(self.log_spec+'/recap.json','w') as fp:
           json.dump(self.json_dict, fp, indent = 1)
@@ -381,20 +417,78 @@ data_unlab = pd.read_csv("input_data/csv/train_unlabeled.csv")
 
 data_submit = pd.read_csv("input_data/csv/test.csv")
 
-machine = SemiSupLabeler(data_lab,data_unlab,data_submit)
+cwd = os.getcwd()
 
-#Build 
-if (machine.datastate == "load"):
-  machine.load_xy()
-if (machine.PCA_MODE):
-  print('DOING PCA')
-  machine.pca_preprocess(machine.pca)
-if (machine.USING_SS):
-   machine.label_spr()
-if (machine.USING_NN):
-  machine.build_model()
-  machine.fit_lab()
-  machine.complete_unlab()
-  machine.fit_tot()
-machine.out()
+cwd += '/input_params/cross_three/'
 
+path_nn = cwd + 'NN.json'
+
+path_knn = cwd + 'KNN.json'
+
+path_rbf = cwd + 'RBF.json'
+
+machine_nn = SemiSupLabeler(data_lab,data_unlab,data_submit,path_nn)
+
+machine_knn = SemiSupLabeler(data_lab,data_unlab,data_submit,path_knn)
+
+machine_rbf = SemiSupLabeler(data_lab,data_unlab,data_submit,path_rbf)
+
+#Build NN
+if (machine_nn.PCA_MODE):
+  machine_nn.pca_preprocess(machine_nn.pca)
+if (machine_nn.USING_NN):
+  machine_nn.build_model()
+  machine_nn.fit_lab()
+  machine_nn.complete_unlab()
+  machine_nn.fit_tot()
+machine_nn.out()
+y_nn_val= machine_nn.get_y_val()
+y_nn_sub= machine_nn.get_y_submit()
+
+
+#Build knn 
+if (machine_knn.PCA_MODE):
+  machine_knn.pca_preprocess(machine_nn.pca)
+if (machine_knn.USING_NN):
+  machine_knn.build_model()
+  machine_knn.fit_lab()
+  machine_knn.complete_unlab()
+  machine_knn.fit_tot()
+machine_knn.out()
+y_knn_val= machine_knn.get_y_val()
+y_knn_sub = machine_knn.get_y_submit()
+
+
+#Build rbf 
+if (machine_rbf.PCA_MODE):
+  machine_rbf.pca_preprocess(machine_nn.pca)
+if (machine_rbf.USING_NN):
+  machine_rbf.build_model()
+  machine_rbf.fit_lab()
+  machine_rbf.complete_unlab()
+  machine_rbf.fit_tot()
+machine_rbf.out()
+y_rbf_val= machine_rbf.get_y_val()
+y_rbf_sub = machine_rbf.get_y_submit()
+
+def merge_maj(y_nn,y_knn,y_rbf):
+    def merge(X,y,z):
+        majright = lambda X, y, z : (X != y and y == z and X != z)
+        if (majright(X,y,z)):
+            return y
+        else:
+            return X    
+    y_merge = list(zip(y_nn,y_knn,y_rbf))
+    y_merge = [merge(i[0],i[1],i[2]) for i in y_merge]
+    return y_merge
+
+y_val_merge = merge_maj(y_nn_val,y_knn_val,y_rbf_val)
+y_sub_merge = merge_maj(y_nn_sub,y_knn_sub,y_rbf_sub)
+
+RESULT_ACC = accuracy_score(y_val_merge, SemiSupLabeler.Y_VALID)
+print("Result obtained after the merge:",RESULT_ACC)
+dump = pd.DataFrame([RESULT_ACC])
+dump.to_csv(os.path.join('logs/merge.csv'),index = False)
+merge_name = "NN_RBF_KNN"
+
+SemiSupLabeler.submission_formed(y_sub_merge,merge_name)

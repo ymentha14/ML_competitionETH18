@@ -6,11 +6,12 @@ initialize:
 # starts the run for all json present in the input file
 submit:
 	@bsub make all_run
-
+triple_cross:
+	@python3 triple_main.py
 all_run: 
 	#make all_run > lsf0001.txt 2>&1
-	@ls $$PWD/input_params/* | xargs -I {} json validate --schema-file={}
-	@ ls $$PWD/input_params/* | xargs -I {} python3 main.py {}
+	@ls $$PWD/input_params/regular_input/* | xargs -I {} json validate --schema-file={}
+	@ ls $$PWD/input_params/regular_input/* | xargs -I {} python3 main.py {}
 	@mpg123 sound/wmelon.mp3
 
 

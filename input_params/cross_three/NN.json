@@ -1,0 +1,60 @@
+{
+ "paramsout": [
+  "layers",
+  "optimizer",
+  "learning rate",
+  "patience",
+  "number of epochs"
+ ],
+ "UsingNN": true,
+ "UsingSS": false,
+ "data_state": "save",
+ "scaler":"standard",
+ "patience":30,
+ "manyfit": 1,
+ "Ratio": 0.98,
+ "pca": 45,
+ "ss_model": "LabSpr",
+ "ss_kernel": "knn",
+ "gamma": 20,
+ "neighbor": 5,
+ "alpha": 0.7,
+ "loss": "sparse_categorical_crossentropy",
+ "optimizer": "SGD",
+ "learning rate": 0.001,
+ "metrics": "accuracy",
+ "decay": 0,
+ "momentum": 0.9,
+ "batch_size": 16,
+ "number of epochs": 1,
+ "layers": [
+  [
+   "relu_bn",
+   1024
+  ],
+  [
+   "dropout",
+   0.35
+  ],
+  [
+   "relu_bn",
+   1024
+  ],
+  [
+   "dropout",
+   0.35
+  ],
+  [
+   "relu_bn",
+   1024
+  ],
+  [
+   "dropout",
+   0.35
+  ],
+  [
+   "relu_bn",
+   1024
+  ]
+ ]
+}

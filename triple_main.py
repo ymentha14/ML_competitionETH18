@@ -268,6 +268,7 @@ class SemiSupLabeler():
 
       self.y_tot = self.label_prop_model.transduction_
       self.y_submit = self.label_prop_model.predict(self.X_submit)
+      self.y_val_predicted = self.label_prop_model.predict(self.X_valid_lab)
       if (self.datastate == "save"):
         self.save_to_csv(self.X_tot,self.y_tot,self.X_valid_lab,self.y_valid)
       RESULT_ACC_SS /= self.manyfit
@@ -314,7 +315,6 @@ class SemiSupLabeler():
         self.model.compile(optimizer = optimiz,
                      loss = self.loss,
                      metrics=[self.metric])
-        
     def fit_lab(self):
       temp = self.nn_fit(self.X_train_lab,self.y_train)
       self.json_dict["small_lab_dataset_nn_acc"] = temp
@@ -337,6 +337,8 @@ class SemiSupLabeler():
               batch_size=self.batch_size,
               validation_data=(self.X_valid_lab,self.y_valid))
       test_loss, aut_acc = self.model.evaluate(self.X_valid_lab,self.y_valid)
+      temp0 = self.model.predict(self.X_valid_lab)
+      self.y_val_predicted = np.array([np.argmax(i) for i in temp0]) 
       y_temp = self.model.predict(self.X_submit)
       self.y_submit = np.array([np.argmax(i) for i in y_temp]) 
       return aut_acc
@@ -344,7 +346,7 @@ class SemiSupLabeler():
     def get_y_submit(self):
         return self.y_submit
     def get_y_val(self):
-        return self.y_valid
+        return self.y_val_predicted
     def complete_unlab(self):
       y_missing = self.model.predict(self.X_unlab)
       y_missing = np.array([np.argmax(i) for i in y_missing])
@@ -436,20 +438,6 @@ machine_knn = SemiSupLabeler(data_lab,data_unlab,data_submit,path_knn)
 
 machine_rbf = SemiSupLabeler(data_lab,data_unlab,data_submit,path_rbf)
 
-#Build NN
-print('**************BUILD NN*********************')
-if (machine_nn.PCA_MODE):
-  machine_nn.pca_preprocess(machine_nn.pca)
-if (machine_nn.USING_NN):
-  machine_nn.build_model()
-  machine_nn.fit_lab()
-  machine_nn.complete_unlab()
-  machine_nn.fit_tot()
-machine_nn.out()
-y_nn_val= machine_nn.get_y_val()
-y_nn_sub= machine_nn.get_y_submit()
-print('**************DONE NN*********************')
-
 #Build knn 
 print('**************BUILD KNN*********************')
 if (machine_knn.PCA_MODE):
@@ -471,6 +459,20 @@ machine_rbf.out()
 y_rbf_val= machine_rbf.get_y_val()
 y_rbf_sub = machine_rbf.get_y_submit()
 print('**************DONE KNN*********************')
+
+#Build NN
+print('**************BUILD NN*********************')
+if (machine_nn.PCA_MODE):
+  machine_nn.pca_preprocess(machine_nn.pca)
+if (machine_nn.USING_NN):
+  machine_nn.build_model()
+  machine_nn.fit_lab()
+  machine_nn.complete_unlab()
+  machine_nn.fit_tot()
+machine_nn.out()
+y_nn_val= machine_nn.get_y_val()
+y_nn_sub= machine_nn.get_y_submit()
+print('**************DONE NN*********************')
 
 def merge_maj(y_nn,y_knn,y_rbf):
     def merge(X,y,z):

@@ -64,4 +64,4 @@ display_arch:
 	@xdg-open http://localhost:6006/
 
 
-
+#bsub -W 1:30 -R "rusage[mem=10000]"

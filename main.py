@@ -24,9 +24,9 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.semi_supervised import LabelSpreading
 from sklearn.semi_supervised import LabelPropagation
-#tf.set_random_seed(14)
-#np.random.seed(seed=14)
-#random.seed(14)
+tf.set_random_seed(14)
+np.random.seed(seed=14)
+random.seed(14)
 
 class SemiSupLabeler():
 
@@ -225,7 +225,7 @@ class SemiSupLabeler():
       X_submit = self.data_submit.to_numpy()
       X_big_lab = (self.data_lab.to_numpy())[:,1:]
       y_big = ((self.data_lab.to_numpy())[:,0]).astype(int)
-      X_train_lab, X_valid_lab,self.y_train,self.y_valid = train_test_split(X_big_lab,y_big,test_size = (1-self.RATIO))#,random_state=14)
+      X_train_lab, X_valid_lab,self.y_train,self.y_valid = train_test_split(X_big_lab,y_big,test_size = (1-self.RATIO),random_state=14)
       X_unlab = self.data_unlab.to_numpy()
       X_tot = np.concatenate((X_train_lab,X_unlab),axis=0)
       self.y_tot = np.concatenate((self.y_train,np.full(len(X_unlab),-1)))

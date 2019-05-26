@@ -1,19 +1,22 @@
 {
  "paramsout": [
-   "gamma",
-   "alpha"  
+  "layers",
+  "optimizer",
+  "learning rate",
+  "patience",
+  "number of epochs"
  ],
- "UsingNN": false,
- "UsingSS": true,
+ "UsingNN": true,
+ "UsingSS": false,
  "data_state": "save",
- "scaler":"standard",
- "patience":10,
- "manyfit":5,
- "Ratio": 0.8,
+ "scaler": "standard",
+ "patience": 30,
+ "manyfit": 1,
+ "Ratio": 0.98,
  "pca": 45,
- "ss_model": "LabProp",
- "ss_kernel": "rbf",
- "gamma": 0.3,
+ "ss_model": "LabSpr",
+ "ss_kernel": "knn",
+ "gamma": 20,
  "neighbor": 5,
  "alpha": 0.7,
  "loss": "sparse_categorical_crossentropy",
@@ -23,10 +26,10 @@
  "decay": 0,
  "momentum": 0.9,
  "batch_size": 16,
- "number of epochs": 20,
+ "number of epochs": 100,
  "layers": [
   [
-   "relu",
+   "relu_bn",
    1024
   ],
   [
@@ -34,7 +37,7 @@
    0.35
   ],
   [
-   "relu",
+   "relu_bn",
    1024
   ],
   [
@@ -42,7 +45,7 @@
    0.35
   ],
   [
-   "relu",
+   "relu_bn",
    1024
   ],
   [
@@ -50,7 +53,7 @@
    0.35
   ],
   [
-   "relu",
+   "relu_bn",
    1024
   ]
  ]

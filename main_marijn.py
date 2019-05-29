@@ -61,6 +61,16 @@ random.seed(14)
 
 #-----------------------------------------SEMI SUPERVISED LEARNING : ----------------------------------------
 
+
+class EntropySelection(BaseSelectionFunction):
+
+  @staticmethod
+  def select(probas_val, initial_labeled_samples):
+    e = (-probas_val * np.log2(probas_val)).sum(axis=1)
+    selection = (np.argsort(e)[::-1])[:initial_labeled_samples]
+    return selection
+ 
+
 class SemiSupLabeler():
     
     """
@@ -536,7 +546,8 @@ class SemiSupLabeler():
       self.y_submit = np.array([np.argmax(i) for i in y_temp]) 
       
       return aut_acc
-      
+    
+    
     """
     @complete_ublab: completes the unlabeled data by predicting the labels for it
     """  
@@ -548,7 +559,20 @@ class SemiSupLabeler():
       self.X_tot = np.concatenate((self.X_train_lab, self.X_unlab), axis=0)
       
       self.y_tot = np.concatenate((self.y_train, y_missing), axis=0)
+    
+    def select(probas_val, initial_labeled_samples):
+      e = (-probas_val * np.log2(probas_val)).sum(axis=1)
+      selection = (np.argsort(e)[::-1])[:initial_labeled_samples]
+      return selection
 
+    def active_learning():
+      temp = self.nn_fit(self.X_train_lab, self.y_train)
+      
+      probas_val = self.model.predict_proba(self.X_unlab)
+      
+      
+      
+      
     """
     @build_output_name: provides the name of the output with all the parameters
     """
@@ -657,34 +681,66 @@ class SemiSupLabeler():
       print("\n")
 
 ##-------------------------------------------ACTUAL COMPUTATIONAL PART: ---------------------------------------------------
-print('##############################START##############################')
 
-data_lab = pd.read_csv("input_data/csv/train_labeled.csv")
+def main_1():
+ print('##############################START##############################')
 
-data_unlab = pd.read_csv("input_data/csv/train_unlabeled.csv")
+  data_lab = pd.read_csv("input_data/csv/train_labeled.csv")
 
-data_submit = pd.read_csv("input_data/csv/test.csv")
+  data_unlab = pd.read_csv("input_data/csv/train_unlabeled.csv")
 
-machine = SemiSupLabeler(data_lab, data_unlab, data_submit)
+  data_submit = pd.read_csv("input_data/csv/test.csv")
 
-#Build 
-if (machine.datastate == "load"): machine.load_xy()
- 
-if (machine.PCA_MODE):
-  print('DOING PCA')
-  
-  machine.pca_preprocess(machine.pca)
+  machine = SemiSupLabeler(data_lab, data_unlab, data_submit)
 
-if (machine.USING_SS): machine.label_spr()
+  #Build 
+  if (machine.datastate == "load"): machine.load_xy()
    
-if (machine.USING_NN):
-  machine.build_model()
-  
-  machine.fit_lab()
-  
-  machine.complete_unlab()
-  
-  machine.fit_tot()
+  if (machine.PCA_MODE):
+    print('DOING PCA')
+    
+    machine.pca_preprocess(machine.pca)
 
-machine.out()
+  if (machine.USING_SS): machine.label_spr()
+     
+  if (machine.USING_NN):
+    machine.build_model()
+    
+    machine.fit_lab()
+    
+    machine.complete_unlab()
+    
+    machine.fit_tot()
+
+  machine.out()
+  
+
+def main_2():
+    print('##############################START##############################')
+
+      data_lab = pd.read_csv("input_data/csv/train_labeled.csv")
+
+      data_unlab = pd.read_csv("input_data/csv/train_unlabeled.csv")
+
+      data_submit = pd.read_csv("input_data/csv/test.csv")
+
+      machine = SemiSupLabeler(data_lab, data_unlab, data_submit)
+
+      #Build 
+      if (machine.datastate == "load"): machine.load_xy()
+       
+      if (machine.PCA_MODE):
+        print('DOING PCA')
+        
+        machine.pca_preprocess(machine.pca)
+
+      if (machine.USING_SS): machine.label_spr()
+         
+      if (machine.USING_NN):
+        machine.build_model()
+        
+        machine.fit_lab()
+
+main_2()
+
 

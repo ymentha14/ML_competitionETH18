@@ -583,15 +583,12 @@ class SemiSupLabeler():
 
       y_missing = np.array([np.argmax(i) for i in y_missing])
  
-      self.X_tot = np.concatenate((self.X_train_lab,
-         self.X_unlab), axis    =0)
+      self.X_tot = np.concatenate((self.X_train_lab, self.X_unlab), axis    =0)
  
       self.y_tot = np.concatenate((self.y_train, y_missing), axis=0) 
 
-
-"""
-    @build_output_name: provides the name of the output with all the parameters
-"""
+    """ @build_output_name: provides the name of the output with all the parameters
+    """
     def build_output_name(self):
         self.output_name = (datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
         

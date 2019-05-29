@@ -716,30 +716,30 @@ def main_1():
   
 
 def main_2():
-    print('##############################START##############################')
+ print('##############################START##############################')
 
-      data_lab = pd.read_csv("input_data/csv/train_labeled.csv")
+  data_lab = pd.read_csv("input_data/csv/train_labeled.csv")
 
-      data_unlab = pd.read_csv("input_data/csv/train_unlabeled.csv")
+  data_unlab = pd.read_csv("input_data/csv/train_unlabeled.csv")
 
-      data_submit = pd.read_csv("input_data/csv/test.csv")
+  data_submit = pd.read_csv("input_data/csv/test.csv")
 
-      machine = SemiSupLabeler(data_lab, data_unlab, data_submit)
+  machine = SemiSupLabeler(data_lab, data_unlab, data_submit)
 
-      #Build 
-      if (machine.datastate == "load"): machine.load_xy()
+  #Build 
+  if (machine.datastate == "load"): machine.load_xy()
        
-      if (machine.PCA_MODE):
-        print('DOING PCA')
+  if (machine.PCA_MODE):
+    print('DOING PCA')
         
-        machine.pca_preprocess(machine.pca)
+    machine.pca_preprocess(machine.pca)
 
-      if (machine.USING_SS): machine.label_spr()
+  if (machine.USING_SS): machine.label_spr()
          
-      if (machine.USING_NN):
-        machine.build_model()
+  if (machine.USING_NN):
+    machine.build_model()
         
-        machine.fit_lab()
+    machine.fit_lab()
 
 main_2()
 

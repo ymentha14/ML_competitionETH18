@@ -551,11 +551,7 @@ class SemiSupLabeler():
       
       self.y_tot = np.concatenate((self.y_train, y_missing), axis=0)
     
-    def select(probas_val, initial_labeled_samples):
-      e = (-probas_val * np.log2(probas_val)).sum(axis=1)
-      selection = (np.argsort(e)[::-1])[:initial_labeled_samples]
-      return selection
-
+    
     def probas_values(self):
       temp = self.nn_fit(self.X_train_lab, self.y_train)
       
@@ -566,13 +562,14 @@ class SemiSupLabeler():
     def mesh(self):
       tableau = []
 
-      number_it = 3
+      number_it = 1
       tabl = []
       
       for i in range(number_it):
         tableau.append(self.probas_values())
       
       tabl = [(sum(x)/number_it) for x in zip(*tableau)]
+      
       #print((tabl[0]))
       predict = []
 
@@ -581,12 +578,20 @@ class SemiSupLabeler():
           if max(x) == x[j]:
             predict.append(j)
 
-      #print(predict)
-      self.y_submit = predict
+      #print(predict[0])
+      y_missing = predict
 
-    """
+      y_missing = np.array([np.argmax(i) for i in y_missing])
+ 
+      self.X_tot = np.concatenate((self.X_train_lab,
+         self.X_unlab), axis    =0)
+ 
+      self.y_tot = np.concatenate((self.y_train, y_missing), axis=0) 
+
+
+"""
     @build_output_name: provides the name of the output with all the parameters
-    """
+"""
     def build_output_name(self):
         self.output_name = (datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
         
@@ -751,6 +756,8 @@ def main_2():
     machine.build_model()
         
     machine.mesh()
+
+    machine.fit_tot()
   machine.out()
 
 main_2()

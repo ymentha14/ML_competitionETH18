@@ -16,6 +16,10 @@ all_run:
 	@ls $$PWD/input_params/regular_input/* | xargs -I {} python3 main.py {}
 	@mpg123 sound/wmelon.mp3
 
+all_run_marijn:
+	@ls $$PWD/input_params/regular_input/* | xargs -I {} json validate --schema-file={}
+	@ls $$PWD/input_params/regular_input/* | xargs -I {} python3 main_marijn.py {}
+
 FOLDER := $(shell ls archive | sort -nr | head -n 1)
 
 #clear the log directory

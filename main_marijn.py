@@ -62,15 +62,6 @@ random.seed(14)
 #-----------------------------------------SEMI SUPERVISED LEARNING : ----------------------------------------
 
 
-class EntropySelection(BaseSelectionFunction):
-
-  @staticmethod
-  def select(probas_val, initial_labeled_samples):
-    e = (-probas_val * np.log2(probas_val)).sum(axis=1)
-    selection = (np.argsort(e)[::-1])[:initial_labeled_samples]
-    return selection
- 
-
 class SemiSupLabeler():
     
     """
@@ -565,14 +556,34 @@ class SemiSupLabeler():
       selection = (np.argsort(e)[::-1])[:initial_labeled_samples]
       return selection
 
-    def active_learning():
+    def probas_values(self):
       temp = self.nn_fit(self.X_train_lab, self.y_train)
       
       probas_val = self.model.predict_proba(self.X_unlab)
       
+      return probas_val
+    
+    def mesh(self):
+      tableau = []
+
+      number_it = 3
+      tabl = []
       
+      for i in range(number_it):
+        tableau.append(self.probas_values())
       
-      
+      tabl = [(sum(x)/number_it) for x in zip(*tableau)]
+      #print((tabl[0]))
+      predict = []
+
+      for x in tabl:
+        for j in range(len(x)):
+          if max(x) == x[j]:
+            predict.append(j)
+
+      #print(predict)
+      self.y_submit = predict
+
     """
     @build_output_name: provides the name of the output with all the parameters
     """
@@ -683,7 +694,7 @@ class SemiSupLabeler():
 ##-------------------------------------------ACTUAL COMPUTATIONAL PART: ---------------------------------------------------
 
 def main_1():
- print('##############################START##############################')
+  print('##############################START##############################')
 
   data_lab = pd.read_csv("input_data/csv/train_labeled.csv")
 
@@ -716,7 +727,7 @@ def main_1():
   
 
 def main_2():
- print('##############################START##############################')
+  print('##############################START##############################')
 
   data_lab = pd.read_csv("input_data/csv/train_labeled.csv")
 
@@ -739,7 +750,8 @@ def main_2():
   if (machine.USING_NN):
     machine.build_model()
         
-    machine.fit_lab()
+    machine.mesh()
+  machine.out()
 
 main_2()
 

@@ -43,6 +43,10 @@ archive:
 move:
 	@cp -r logs/* archive/$(FOLDER)/
 
+#move the results into submissions:
+move_res : 
+	@cp -r results/* submissions/
+
 #run the script allowing to asssess the pca parameters
 pca:
 	@python3 analyze_pca.py

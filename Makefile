@@ -1,8 +1,8 @@
 .PHONY: all clean clear test archive
 
 initialize:
-	module load python
-	module load python/3.7.1
+	@module load python
+	@module load python/3.7.1
 # starts the run for all json present in the input file
 submit:
 	@bsub make all_run

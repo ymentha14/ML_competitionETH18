@@ -9,12 +9,12 @@ submit:
 triple:
 	@ls $$PWD/input_params/cross_three/* | xargs -I {} json validate --schema-file={}
 	@python3 triple_main.py
+
 all_run: 
 	#make all_run > lsf0001.txt 2>&1
 	@ls $$PWD/input_params/regular_input/* | xargs -I {} json validate --schema-file={}
-	@ ls $$PWD/input_params/regular_input/* | xargs -I {} python3 main.py {}
+	@ls $$PWD/input_params/regular_input/* | xargs -I {} python3 main.py {}
 	@mpg123 sound/wmelon.mp3
-
 
 FOLDER := $(shell ls archive | sort -nr | head -n 1)
 
@@ -52,7 +52,9 @@ display:
 
 # runs the file with the arguments present in the code
 run: main.py
-	@python3 main.py
+	#@python3 main.py
+	@python3.7 main.py
+	
 #reset the tensorboard
 reset:
 	@kill $$(ps aux | grep tensorboard | awk '{print $$2}')

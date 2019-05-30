@@ -591,7 +591,8 @@ class SemiSupLabeler():
     def filtered_mesh(self):
       tableau = []
 
-      number_it = 10
+      number_it = 30
+      
       tabl = []
       
       for i in range(number_it):

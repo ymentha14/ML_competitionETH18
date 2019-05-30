@@ -562,7 +562,7 @@ class SemiSupLabeler():
     def mesh(self):
       tableau = []
 
-      number_it = 100
+      number_it = 20
       tabl = []
       
       for i in range(number_it):
@@ -572,15 +572,55 @@ class SemiSupLabeler():
       
       #print((tabl[0]))
       predict = []
-
+      
+      """"
       for x in tabl:
         for j in range(len(x)):
           if max(x) == x[j]:
             predict.append(j)
-
+      """
+      
       #print(predict[0])
+      predict = [np.argmax(i) for i in tabl]
       y_missing = predict
+      
       self.X_tot = np.concatenate((self.X_train_lab, self.X_unlab), axis    =0)
+ 
+      self.y_tot = np.concatenate((self.y_train, y_missing), axis=0) 
+      
+    def filtered_mesh(self):
+      tableau = []
+
+      number_it = 4
+      tabl = []
+      
+      for i in range(number_it):
+        tableau.append(self.probas_values())
+      
+      tabl = [(sum(x)/number_it) for x in zip(*tableau)]
+      
+      THRESHOLD_PROBAS = 0.5 
+      
+      #Si la probabilité maximale est en dessous du threshold: 
+      truncated_tabl = [ i for i in tabl if max(i) <= THRESHOLD_PROBAS]
+      
+      #Trouver les indices de ses points pour les enlever du unlabeled set. 
+      indices = []
+      
+      for i in range(len(tabl)):
+        if max(tabl[i]) <= THRESHOLD_PROBAS: indices.append(i)
+        
+      X_unlab_truncated = np.delete(self.X_unlab, indices, axis = 0)
+      
+      #print((tabl[0]))
+      #print(predict[0])
+      
+      #Faire la prédiction que sur les points au dessus du threshold: 
+      predict = [np.argmax(i) for i in truncated_tabl]
+      
+      y_missing = predict
+      
+      self.X_tot = np.concatenate((self.X_train_lab, self.X_unlab_truncated), axis = 0)
  
       self.y_tot = np.concatenate((self.y_train, y_missing), axis=0) 
 

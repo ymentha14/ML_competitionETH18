@@ -511,6 +511,20 @@ class SemiSupLabeler():
       temp = self.nn_fit(self.X_tot, self.y_tot)
       
       self.json_dict["big_dataset_nn_acc"] = temp
+    
+    def fit_tot_mesh():
+      tableau = []
+      tabl = []
+      number_it = 10
+      
+      temp = self.nn_fit(self.X_tot, self.y_tot)
+
+      for i in range(number_it):
+          probabs_values = self.model.predict(self.X_submit)
+          tableau.append(self.probas_values)
+                                              
+      tabl = [(sum(x)/number_it) for x in zip(*tableau)]
+      self.y_submit = np.array([np.argmax(i) for i in tabl]) 
 
     """
     @nn_fit: fits the neural network to input data X and y provided. 

@@ -591,7 +591,7 @@ class SemiSupLabeler():
     def filtered_mesh(self):
       tableau = []
 
-      number_it = 4
+      number_it = 1
       tabl = []
       
       for i in range(number_it):
@@ -602,16 +602,18 @@ class SemiSupLabeler():
       THRESHOLD_PROBAS = 0.5 
       
       #Si la probabilité maximale est en dessous du threshold: 
-      truncated_tabl = [ i for i in tabl if max(i) <= THRESHOLD_PROBAS]
-      
+      truncated_tabl = [ i for i in tabl if max(i) > THRESHOLD_PROBAS]
+      print(len(truncated_tabl))
+
       #Trouver les indices de ses points pour les enlever du unlabeled set. 
       indices = []
       
       for i in range(len(tabl)):
         if max(tabl[i]) <= THRESHOLD_PROBAS: indices.append(i)
         
-      X_unlab_truncated = np.delete(self.X_unlab, indices, axis = 0)
-      
+      self.X_unlab_truncated = np.delete(self.X_unlab, indices, axis = 0)
+      print(len(self.X_unlab_truncated))
+
       #print((tabl[0]))
       #print(predict[0])
       
@@ -789,11 +791,12 @@ def main_2():
   if (machine.USING_NN):
     machine.build_model()
         
-    machine.mesh()
-
+    #machine.mesh()
+    machine.filtered_mesh()
+    
     machine.fit_tot()
+  
   machine.out()
 
 main_2()
-
 

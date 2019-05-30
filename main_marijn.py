@@ -591,7 +591,7 @@ class SemiSupLabeler():
     def filtered_mesh(self):
       tableau = []
 
-      number_it = 1
+      number_it = 10
       tabl = []
       
       for i in range(number_it):
@@ -599,7 +599,7 @@ class SemiSupLabeler():
       
       tabl = [(sum(x)/number_it) for x in zip(*tableau)]
       
-      THRESHOLD_PROBAS = 0.5 
+      THRESHOLD_PROBAS = 0.7 
       
       #Si la probabilité maximale est en dessous du threshold: 
       truncated_tabl = [ i for i in tabl if max(i) > THRESHOLD_PROBAS]

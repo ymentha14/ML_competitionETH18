@@ -562,7 +562,7 @@ class SemiSupLabeler():
     def mesh(self):
       tableau = []
 
-      number_it = 1
+      number_it = 100
       tabl = []
       
       for i in range(number_it):
@@ -580,9 +580,6 @@ class SemiSupLabeler():
 
       #print(predict[0])
       y_missing = predict
-
-      y_missing = np.array([np.argmax(i) for i in y_missing])
- 
       self.X_tot = np.concatenate((self.X_train_lab, self.X_unlab), axis    =0)
  
       self.y_tot = np.concatenate((self.y_train, y_missing), axis=0) 
